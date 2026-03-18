@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter);
+  --color-background: #fdfdfd;
+  --color-foreground: #111111;
+  --color-accent: #f4f4f5;
+  --color-border: #e4e4e7;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    @apply antialiased;
+  }
+}
+
+@layer utilities {
+  .bento-card {
+    @apply bg-white rounded-3xl border border-zinc-200 shadow-[0_4px_30px_rgba(0,0,0,0.03)] transition-all duration-300;
+  }
+  
+  .glass {
+    @apply bg-white/60 backdrop-blur-xl border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.04)];
+  }
+}
