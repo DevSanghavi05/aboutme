@@ -14,7 +14,7 @@ export function SmoothScroll() {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      target += e.deltaY * 0.6; // Slow down scroll speed
+      target += e.deltaY * 0.25; // Much slower scroll speed
       target = Math.max(0, Math.min(target, document.body.scrollHeight - window.innerHeight));
     };
 

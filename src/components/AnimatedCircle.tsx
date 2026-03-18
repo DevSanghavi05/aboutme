@@ -114,11 +114,8 @@ export function AnimatedCircle() {
   const card3Y = useTransform(scrollYProgress, [0.66, 0.76], [40, 0]);
   const card3Display = useTransform(card3Opacity, (v) => (v > 0.05 ? "flex" : "none"));
 
-  // ── Scroll hint ──
-  const hintOpacity = useTransform(scrollYProgress, [0, 0.04], [0.6, 0]);
-
   return (
-    <div ref={containerRef} className="h-[500vh] w-full relative bg-[#fdfdfd]">
+    <div ref={containerRef} className="h-[400vh] w-full relative bg-[#fdfdfd]">
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
 
         {/* Central Circle Container — 520px desktop */}
@@ -242,14 +239,6 @@ export function AnimatedCircle() {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          style={{ opacity: hintOpacity }}
-        >
-          <span className="text-xs uppercase tracking-widest font-mono text-zinc-400">Scroll to explore</span>
-          <div className="w-[1px] h-10 bg-gradient-to-b from-zinc-300 to-transparent" />
-        </motion.div>
 
       </div>
     </div>
