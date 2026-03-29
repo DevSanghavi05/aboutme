@@ -9,7 +9,26 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Dev Sanghavi - Portfolio",
-  description: "Clean, professional personal site of Dev Sanghavi",
+  description: "Dev Sanghavi is a 12-year-old 6th-grade student, developer, and creator based in Houston, TX. Explore Dev Sanghavi's portfolio featuring accomplishments in software, AI, and robotics like Churro and Verde.",
+  keywords: ["Dev Sanghavi", "Houston", "Developer", "Student", "Portfolio", "Churro", "Verde", "AI", "Software"],
+  authors: [{ name: "Dev Sanghavi" }],
+  creator: "Dev Sanghavi",
+  openGraph: {
+    title: "Dev Sanghavi - Portfolio",
+    description: "Personal portfolio of Dev Sanghavi, a 12 yr old developer and creator from Houston, TX.",
+    url: "https://devsanghavi.com",
+    siteName: "Dev Sanghavi",
+    locale: "en_US",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({

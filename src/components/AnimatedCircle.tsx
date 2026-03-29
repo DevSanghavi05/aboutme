@@ -157,8 +157,9 @@ export function AnimatedCircle() {
                 is a <TypewriterRole />.
               </h1>
               <div className="mt-8 space-y-1">
-                <p className="text-zinc-400 text-sm md:text-base font-medium">i design, code and own products</p>
-                <p className="text-zinc-400 text-sm md:text-base font-medium">stay hungry, stay curious.</p>
+                <p className="text-zinc-400 text-sm md:text-base font-medium">Houston, TX</p>
+                <p className="text-zinc-400 text-sm md:text-base font-medium">12 yrs</p>
+                <p className="text-zinc-400 text-sm md:text-base font-medium">6th grade</p>
               </div>
             </motion.div>
 
