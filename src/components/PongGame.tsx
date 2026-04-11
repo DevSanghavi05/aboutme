@@ -127,10 +127,18 @@ export function PongGame() {
     window.addEventListener('keyup', handleKeyUp);
 
     const resetBall = () => {
-      ball.x = canvas.width / 2;
-      ball.y = canvas.height / 2;
+      const player = playerRef.current;
+      const spawnPlayerSide = Math.random() > 0.5;
+      if (spawnPlayerSide) {
+        ball.x = player.x + player.width / 2;
+        ball.y = canvas.height * 0.6;
+        ball.dy = -settings.ballSpeed; // Go up toward CPU
+      } else {
+        ball.x = cpuRef.current.x + cpuRef.current.width / 2;
+        ball.y = canvas.height * 0.4;
+        ball.dy = settings.ballSpeed; // Go down toward player
+      }
       ball.dx = settings.ballSpeed * (Math.random() > 0.5 ? 1 : -1);
-      ball.dy = settings.ballSpeed * (Math.random() > 0.5 ? 1 : -1);
     };
 
     const checkPaddleCollision = (
@@ -152,9 +160,9 @@ export function PongGame() {
       const cpu = cpuRef.current;
       
       // Player paddle
-      if (keysRef.current.left) player.x -= 10;
-      else if (keysRef.current.right) player.x += 10;
-      else if (inputModeRef.current === 'mouse') player.x += (mouseRef.current - player.width / 2 - player.x) * 0.2;
+      if (keysRef.current.left) player.x -= 16;
+      else if (keysRef.current.right) player.x += 16;
+      else if (inputModeRef.current === 'mouse') player.x += (mouseRef.current - player.width / 2 - player.x) * 0.3;
       // When keyboard mode and no keys pressed, paddle stays put
       player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
       

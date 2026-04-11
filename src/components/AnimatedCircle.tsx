@@ -241,7 +241,7 @@ export function AnimatedCircle() {
           </div>
         </div>
 
-        <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs text-zinc-300 tracking-[0.2em] uppercase font-medium">press p to play</p>
+        <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs text-zinc-500 tracking-[0.2em] uppercase font-medium">press p to play</p>
 
       </div>
     </div>
