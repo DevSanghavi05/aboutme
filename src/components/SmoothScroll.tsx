@@ -15,7 +15,8 @@ export function SmoothScroll() {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       target += e.deltaY * 0.25; // Much slower scroll speed
-      target = Math.max(0, Math.min(target, document.body.scrollHeight - window.innerHeight));
+      const maxScroll = (document.body.scrollHeight - window.innerHeight) * 0.76; // Lock at contact page
+      target = Math.max(0, Math.min(target, maxScroll));
     };
 
     const update = () => {

@@ -15,14 +15,15 @@ const RADIUS = 270; // Inner end of tick — pushed out for spacing from circle
 const TICK_LENGTH = 18; // Default short tick length
 
 function generateTicks() {
+  const round = (n: number) => Math.round(n * 10000) / 10000;
   const ticks = [];
   for (let i = 0; i < TOTAL_TICKS; i++) {
     const angle = (i / TOTAL_TICKS) * 360;
     const rad = (angle * Math.PI) / 180;
-    const x1 = 300 + RADIUS * Math.cos(rad);
-    const y1 = 300 + RADIUS * Math.sin(rad);
-    const x2 = 300 + (RADIUS + TICK_LENGTH) * Math.cos(rad);
-    const y2 = 300 + (RADIUS + TICK_LENGTH) * Math.sin(rad);
+    const x1 = round(300 + RADIUS * Math.cos(rad));
+    const y1 = round(300 + RADIUS * Math.sin(rad));
+    const x2 = round(300 + (RADIUS + TICK_LENGTH) * Math.cos(rad));
+    const y2 = round(300 + (RADIUS + TICK_LENGTH) * Math.sin(rad));
     ticks.push({ x1, y1, x2, y2, angle, index: i });
   }
   return ticks;
@@ -240,6 +241,7 @@ export function AnimatedCircle() {
           </div>
         </div>
 
+        <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs text-zinc-300 tracking-[0.2em] uppercase font-medium">press p to play</p>
 
       </div>
     </div>
