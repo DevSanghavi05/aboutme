@@ -82,6 +82,23 @@ const TargetCursor = ({
       const strength = activeStrengthRef.current;
       if (strength === 0) return;
 
+      // Each frame: re-read the target rect so brackets track it during scroll/animation.
+      // If the element has become invisible (display:none → rect collapses to 0), bail out.
+      if (activeTarget) {
+        const rect = activeTarget.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) {
+          if (currentLeaveHandler) currentLeaveHandler();
+          return;
+        }
+        const { borderWidth, cornerSize } = constants;
+        targetCornerPositionsRef.current = [
+          { x: rect.left  - borderWidth,              y: rect.top    - borderWidth },
+          { x: rect.right + borderWidth - cornerSize,  y: rect.top    - borderWidth },
+          { x: rect.right + borderWidth - cornerSize,  y: rect.bottom + borderWidth - cornerSize },
+          { x: rect.left  - borderWidth,              y: rect.bottom + borderWidth - cornerSize },
+        ];
+      }
+
       const cursorX = gsap.getProperty(cursorRef.current, 'x') as number;
       const cursorY = gsap.getProperty(cursorRef.current, 'y') as number;
       const corners = Array.from(cornersRef.current);
