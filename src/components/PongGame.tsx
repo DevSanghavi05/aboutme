@@ -151,7 +151,7 @@ export function PongGame() {
     ball.dx = 0;
     ball.dy = 0;
 
-    const initSpd = is2P ? 8 : settings.ballSpeed;
+    const initSpd = is2P ? 12 : settings.ballSpeed;
     if (is2P) {
       // ±20° from horizontal so ball heads toward a paddle, not the corners
       const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
@@ -219,7 +219,7 @@ export function PongGame() {
       ball.y  = canvas.height / 2;
       ball.dx = 0;
       ball.dy = 0;
-      const spd = modeRef.current === '2player' ? 8 : settings.ballSpeed;
+      const spd = modeRef.current === '2player' ? 12 : settings.ballSpeed;
       if (modeRef.current === '2player') {
         const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
         countdownRef.current = {
@@ -277,8 +277,8 @@ export function PongGame() {
         player.y = Math.max(0, Math.min(player.y, canvas.height - player.height));
 
         // P2 (right paddle) — arrow up/down, vertical movement
-        if (keys2Ref.current.up)        cpu.y -= 20;
-        else if (keys2Ref.current.down) cpu.y += 20;
+        if (keys2Ref.current.up)        cpu.y -= pSpd;
+        else if (keys2Ref.current.down) cpu.y += pSpd;
         cpu.y = Math.max(0, Math.min(cpu.y, canvas.height - cpu.height));
       } else {
         // P1 (bottom paddle) — arrows or mouse, horizontal movement
@@ -310,8 +310,8 @@ export function PongGame() {
       ball.x += ball.dx;
       ball.y += ball.dy;
 
-      const curSpeedGain = modeRef.current === '2player' ? 0.6 : settings.speedGain;
-      const curMaxSpeed  = modeRef.current === '2player' ? 28  : settings.maxSpeed;
+      const curSpeedGain = modeRef.current === '2player' ? 0.9 : settings.speedGain;
+      const curMaxSpeed  = modeRef.current === '2player' ? 40  : settings.maxSpeed;
 
       if (modeRef.current === '2player') {
         // Top/bottom walls bounce
