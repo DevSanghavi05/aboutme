@@ -6,10 +6,10 @@ type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
 
 const DIFFICULTY_SETTINGS = {
-  easy:       { cpuSpeed: 5,  cpuReaction: 0.75, ballSpeed: 5,  speedGain: 0.3, maxSpeed: 13 },
-  medium:     { cpuSpeed: 7,  cpuReaction: 0.92, ballSpeed: 6,  speedGain: 0.4, maxSpeed: 17 },
-  hard:       { cpuSpeed: 9,  cpuReaction: 1.0,  ballSpeed: 7,  speedGain: 0.5, maxSpeed: 22 },
-  impossible: { cpuSpeed: 20, cpuReaction: 1.0,  ballSpeed: 11, speedGain: 0.9, maxSpeed: 50 },
+  easy:       { cpuSpeed: 5,  cpuReaction: 0.75, ballSpeed: 5,  speedGain: 0.3, maxSpeed: 13, playerSpeed: 16, playerLerp: 0.30 },
+  medium:     { cpuSpeed: 7,  cpuReaction: 0.92, ballSpeed: 6,  speedGain: 0.4, maxSpeed: 17, playerSpeed: 16, playerLerp: 0.30 },
+  hard:       { cpuSpeed: 9,  cpuReaction: 1.0,  ballSpeed: 7,  speedGain: 0.5, maxSpeed: 22, playerSpeed: 16, playerLerp: 0.30 },
+  impossible: { cpuSpeed: 20, cpuReaction: 1.0,  ballSpeed: 11, speedGain: 0.9, maxSpeed: 50, playerSpeed: 26, playerLerp: 0.50 },
 };
 
 const WIN_SCORE = 5;
@@ -131,7 +131,7 @@ export function PongGame() {
     ball.y  = canvas.height / 2;
     ball.dx = 0;
     ball.dy = 0;
-    const initSpd = mode === '2player' ? 6 : settings.ballSpeed;
+    const initSpd = mode === '2player' ? 8 : settings.ballSpeed;
     countdownRef.current = {
       active: true,
       start:  performance.now(),
@@ -159,9 +159,17 @@ export function PongGame() {
       if (e.key === 'd' || e.key === 'D') keys2Ref.current.right = false;
     };
 
+    const handleBlur = () => {
+      keysRef.current.left   = false;
+      keysRef.current.right  = false;
+      keys2Ref.current.left  = false;
+      keys2Ref.current.right = false;
+    };
+
     window.addEventListener('mousemove', handleMouse);
     window.addEventListener('keydown',   handleKeyDown);
     window.addEventListener('keyup',     handleKeyUp);
+    window.addEventListener('blur',      handleBlur);
 
     const resetBall = () => {
       hitCountRef.current = 0;
@@ -169,7 +177,7 @@ export function PongGame() {
       ball.y  = canvas.height / 2;
       ball.dx = 0;
       ball.dy = 0;
-      const spd = modeRef.current === '2player' ? 6 : settings.ballSpeed;
+      const spd = modeRef.current === '2player' ? 8 : settings.ballSpeed;
       countdownRef.current = {
         active: true,
         start:  performance.now(),
@@ -208,16 +216,17 @@ export function PongGame() {
       }
 
       // P1 paddle (bottom) — arrows or mouse
-      if (keysRef.current.left)  player.x -= 16;
-      else if (keysRef.current.right) player.x += 16;
+      const pSpd = modeRef.current === '2player' ? 20 : settings.playerSpeed;
+      if (keysRef.current.left)  player.x -= pSpd;
+      else if (keysRef.current.right) player.x += pSpd;
       else if (modeRef.current !== '2player' && inputModeRef.current === 'mouse')
-        player.x += (mouseRef.current - player.width / 2 - player.x) * 0.3;
+        player.x += (mouseRef.current - player.width / 2 - player.x) * settings.playerLerp;
       player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
 
       // Top paddle — P2 keyboard or CPU AI
       if (modeRef.current === '2player') {
-        if (keys2Ref.current.left)       cpu.x -= 16;
-        else if (keys2Ref.current.right) cpu.x += 16;
+        if (keys2Ref.current.left)       cpu.x -= 20;
+        else if (keys2Ref.current.right) cpu.x += 20;
       } else {
         const cpuCenter = cpu.x + cpu.width / 2;
         if (difficulty === 'impossible') {
@@ -244,8 +253,8 @@ export function PongGame() {
       if (ball.x < ball.size / 2)                  { ball.dx = Math.abs(ball.dx);  ball.x = ball.size / 2; }
       if (ball.x > canvas.width - ball.size / 2)   { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.size / 2; }
 
-      const curSpeedGain = modeRef.current === '2player' ? 0.4 : settings.speedGain;
-      const curMaxSpeed  = modeRef.current === '2player' ? 20  : settings.maxSpeed;
+      const curSpeedGain = modeRef.current === '2player' ? 0.6 : settings.speedGain;
+      const curMaxSpeed  = modeRef.current === '2player' ? 28  : settings.maxSpeed;
 
       // P1 paddle collision
       if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dy > 0)) {
@@ -408,6 +417,7 @@ export function PongGame() {
       window.removeEventListener('mousemove', handleMouse);
       window.removeEventListener('keydown',   handleKeyDown);
       window.removeEventListener('keyup',     handleKeyUp);
+      window.removeEventListener('blur',      handleBlur);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [isOpen, gameState, difficulty, mode]);
