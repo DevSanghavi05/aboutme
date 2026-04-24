@@ -6,10 +6,10 @@ type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
 
 const DIFFICULTY_SETTINGS = {
-  easy:       { cpuSpeed: 5,  cpuReaction: 0.75, ballSpeed: 5,  speedGain: 0.3, maxSpeed: 13, playerSpeed: 16, playerLerp: 0.30 },
-  medium:     { cpuSpeed: 7,  cpuReaction: 0.92, ballSpeed: 6,  speedGain: 0.4, maxSpeed: 17, playerSpeed: 16, playerLerp: 0.30 },
-  hard:       { cpuSpeed: 9,  cpuReaction: 1.0,  ballSpeed: 7,  speedGain: 0.5, maxSpeed: 22, playerSpeed: 16, playerLerp: 0.30 },
-  impossible: { cpuSpeed: 20, cpuReaction: 1.0,  ballSpeed: 11, speedGain: 0.9, maxSpeed: 50, playerSpeed: 26, playerLerp: 0.50 },
+  easy:       { cpuSpeed: 6,  cpuReaction: 0.78, ballSpeed: 6,  speedGain: 0.40, maxSpeed: 17, playerSpeed: 17, playerLerp: 0.30 },
+  medium:     { cpuSpeed: 8,  cpuReaction: 0.90, ballSpeed: 8,  speedGain: 0.55, maxSpeed: 23, playerSpeed: 18, playerLerp: 0.30 },
+  hard:       { cpuSpeed: 11, cpuReaction: 0.97, ballSpeed: 10, speedGain: 0.70, maxSpeed: 30, playerSpeed: 20, playerLerp: 0.30 },
+  impossible: { cpuSpeed: 20, cpuReaction: 1.0,  ballSpeed: 11, speedGain: 0.9,  maxSpeed: 50, playerSpeed: 26, playerLerp: 0.50 },
 };
 
 const WIN_SCORE = 5;
@@ -28,12 +28,14 @@ export function PongGame() {
   const cpuRef    = useRef({ x: 300, y: 40, width: 120, height: 12 });
   const ballRef   = useRef({ x: 300, y: 200, dx: 0, dy: 0, size: 50 });
   const mouseRef  = useRef(300);
-  const keysRef   = useRef({ left: false, right: false }); // P1: arrows
-  const keys2Ref  = useRef({ left: false, right: false }); // P2: A/D
+  // keysRef: P1 — left/right for solo, up/down for 2P
+  const keysRef   = useRef({ left: false, right: false, up: false, down: false });
+  // keys2Ref: P2 — up/down arrows
+  const keys2Ref  = useRef({ up: false, down: false });
   const inputModeRef = useRef<'mouse' | 'keyboard'>('mouse');
   const modeRef   = useRef<Mode>('solo');
   const countdownRef = useRef({ active: false, start: 0, pendingDx: 0, pendingDy: 0 });
-  const hitCountRef    = useRef(0); // rally hit counter for impossible mode escalation
+  const hitCountRef    = useRef(0);
   const playerScoreRef = useRef(0);
   const cpuScoreRef    = useRef(0);
 
@@ -108,36 +110,67 @@ export function PongGame() {
 
     const settings = DIFFICULTY_SETTINGS[difficulty];
     modeRef.current = mode;
+    const is2P = mode === '2player';
 
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
-      playerRef.current.y = canvas.height - 60;
-      cpuRef.current.y    = 48;
-      mouseRef.current    = canvas.width / 2;
+      if (is2P) {
+        // Vertical paddles on left/right sides
+        playerRef.current.width  = 12;
+        playerRef.current.height = 100;
+        cpuRef.current.width     = 12;
+        cpuRef.current.height    = 100;
+        playerRef.current.x = 40;
+        playerRef.current.y = canvas.height / 2 - 50;
+        cpuRef.current.x    = canvas.width - 52;
+        cpuRef.current.y    = canvas.height / 2 - 50;
+      } else {
+        playerRef.current.width  = 120;
+        playerRef.current.height = 12;
+        cpuRef.current.width     = 120;
+        cpuRef.current.height    = 12;
+        playerRef.current.y = canvas.height - 60;
+        cpuRef.current.y    = 48;
+        mouseRef.current    = canvas.width / 2;
+      }
     };
     window.addEventListener('resize', resize);
     resize();
 
-    // Center paddles at game start so mouse target aligns with paddle position
-    playerRef.current.x = canvas.width / 2 - playerRef.current.width / 2;
-    cpuRef.current.x    = canvas.width / 2 - cpuRef.current.width  / 2;
+    if (!is2P) {
+      playerRef.current.x = canvas.width / 2 - playerRef.current.width / 2;
+      cpuRef.current.x    = canvas.width / 2 - cpuRef.current.width  / 2;
+    }
 
     hitCountRef.current = 0;
 
-    // Place ball at center and start initial countdown
     const ball = ballRef.current;
     ball.x  = canvas.width / 2;
     ball.y  = canvas.height / 2;
     ball.dx = 0;
     ball.dy = 0;
-    const initSpd = mode === '2player' ? 8 : settings.ballSpeed;
-    countdownRef.current = {
-      active: true,
-      start:  performance.now(),
-      pendingDx: initSpd * (Math.random() > 0.5 ? 1 : -1),
-      pendingDy: initSpd,
-    };
+
+    const initSpd = is2P ? 8 : settings.ballSpeed;
+    if (is2P) {
+      // ±20° from horizontal so ball heads toward a paddle, not the corners
+      const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
+      countdownRef.current = {
+        active: true,
+        start:  performance.now(),
+        pendingDx: initSpd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
+        pendingDy: initSpd * Math.sin(angle),
+      };
+    } else {
+      // ±25° from vertical so ball heads toward a paddle, not the corners
+      const angle = (Math.random() - 0.5) * (Math.PI / 3.6);
+      countdownRef.current = {
+        active: true,
+        start:  performance.now(),
+        pendingDx: initSpd * Math.sin(angle),
+        pendingDy: initSpd * Math.cos(angle),
+      };
+    }
 
     const handleMouse = (e: MouseEvent) => {
       if (modeRef.current === '2player') return;
@@ -146,24 +179,33 @@ export function PongGame() {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft')           { keysRef.current.left   = true;  inputModeRef.current = 'keyboard'; e.preventDefault(); }
-      if (e.key === 'ArrowRight')          { keysRef.current.right  = true;  inputModeRef.current = 'keyboard'; e.preventDefault(); }
-      if (e.key === 'a' || e.key === 'A') { keys2Ref.current.left  = true;  e.preventDefault(); }
-      if (e.key === 'd' || e.key === 'D') { keys2Ref.current.right = true;  e.preventDefault(); }
+      // Solo mode — horizontal movement
+      if (e.key === 'ArrowLeft')           { keysRef.current.left  = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
+      if (e.key === 'ArrowRight')          { keysRef.current.right = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
+      // 2P P1 — W/S vertical
+      if (e.key === 'w' || e.key === 'W') { keysRef.current.up    = true; e.preventDefault(); }
+      if (e.key === 's' || e.key === 'S') { keysRef.current.down  = true; e.preventDefault(); }
+      // 2P P2 — arrow up/down vertical
+      if (e.key === 'ArrowUp')             { keys2Ref.current.up   = true; e.preventDefault(); }
+      if (e.key === 'ArrowDown')           { keys2Ref.current.down = true; e.preventDefault(); }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft')           keysRef.current.left   = false;
-      if (e.key === 'ArrowRight')          keysRef.current.right  = false;
-      if (e.key === 'a' || e.key === 'A') keys2Ref.current.left  = false;
-      if (e.key === 'd' || e.key === 'D') keys2Ref.current.right = false;
+      if (e.key === 'ArrowLeft')           keysRef.current.left  = false;
+      if (e.key === 'ArrowRight')          keysRef.current.right = false;
+      if (e.key === 'w' || e.key === 'W') keysRef.current.up    = false;
+      if (e.key === 's' || e.key === 'S') keysRef.current.down  = false;
+      if (e.key === 'ArrowUp')             keys2Ref.current.up   = false;
+      if (e.key === 'ArrowDown')           keys2Ref.current.down = false;
     };
 
     const handleBlur = () => {
-      keysRef.current.left   = false;
-      keysRef.current.right  = false;
-      keys2Ref.current.left  = false;
-      keys2Ref.current.right = false;
+      keysRef.current.left  = false;
+      keysRef.current.right = false;
+      keysRef.current.up    = false;
+      keysRef.current.down  = false;
+      keys2Ref.current.up   = false;
+      keys2Ref.current.down = false;
     };
 
     window.addEventListener('mousemove', handleMouse);
@@ -178,12 +220,23 @@ export function PongGame() {
       ball.dx = 0;
       ball.dy = 0;
       const spd = modeRef.current === '2player' ? 8 : settings.ballSpeed;
-      countdownRef.current = {
-        active: true,
-        start:  performance.now(),
-        pendingDx: spd * (Math.random() > 0.5 ? 1 : -1),
-        pendingDy: spd * (Math.random() > 0.5 ? 1 : -1),
-      };
+      if (modeRef.current === '2player') {
+        const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
+        countdownRef.current = {
+          active: true,
+          start:  performance.now(),
+          pendingDx: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
+          pendingDy: spd * Math.sin(angle),
+        };
+      } else {
+        const angle = (Math.random() - 0.5) * (Math.PI / 3.6);
+        countdownRef.current = {
+          active: true,
+          start:  performance.now(),
+          pendingDx: spd * Math.sin(angle),
+          pendingDy: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
+        };
+      }
     };
 
     const checkPaddleCollision = (
@@ -215,19 +268,27 @@ export function PongGame() {
         }
       }
 
-      // P1 paddle (bottom) — arrows or mouse
       const pSpd = modeRef.current === '2player' ? 20 : settings.playerSpeed;
-      if (keysRef.current.left)  player.x -= pSpd;
-      else if (keysRef.current.right) player.x += pSpd;
-      else if (modeRef.current !== '2player' && inputModeRef.current === 'mouse')
-        player.x += (mouseRef.current - player.width / 2 - player.x) * settings.playerLerp;
-      player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
 
-      // Top paddle — P2 keyboard or CPU AI
       if (modeRef.current === '2player') {
-        if (keys2Ref.current.left)       cpu.x -= 20;
-        else if (keys2Ref.current.right) cpu.x += 20;
+        // P1 (left paddle) — W/S keys, vertical movement
+        if (keysRef.current.up)        player.y -= pSpd;
+        else if (keysRef.current.down) player.y += pSpd;
+        player.y = Math.max(0, Math.min(player.y, canvas.height - player.height));
+
+        // P2 (right paddle) — arrow up/down, vertical movement
+        if (keys2Ref.current.up)        cpu.y -= 20;
+        else if (keys2Ref.current.down) cpu.y += 20;
+        cpu.y = Math.max(0, Math.min(cpu.y, canvas.height - cpu.height));
       } else {
+        // P1 (bottom paddle) — arrows or mouse, horizontal movement
+        if (keysRef.current.left)       player.x -= pSpd;
+        else if (keysRef.current.right) player.x += pSpd;
+        else if (inputModeRef.current === 'mouse')
+          player.x += (mouseRef.current - player.width / 2 - player.x) * settings.playerLerp;
+        player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+
+        // CPU AI (top paddle)
         const cpuCenter = cpu.x + cpu.width / 2;
         if (difficulty === 'impossible') {
           const dynCpuSpeed = settings.cpuSpeed + hitCountRef.current * 0.5;
@@ -242,77 +303,122 @@ export function PongGame() {
           if (cpu.x < center - 5) cpu.x += settings.cpuSpeed * 0.3;
           else if (cpu.x > center + 5) cpu.x -= settings.cpuSpeed * 0.3;
         }
+        cpu.x = Math.max(0, Math.min(cpu.x, canvas.width - cpu.width));
       }
-      cpu.x = Math.max(0, Math.min(cpu.x, canvas.width - cpu.width));
 
       // Ball movement
       ball.x += ball.dx;
       ball.y += ball.dy;
 
-      // Wall collision
-      if (ball.x < ball.size / 2)                  { ball.dx = Math.abs(ball.dx);  ball.x = ball.size / 2; }
-      if (ball.x > canvas.width - ball.size / 2)   { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.size / 2; }
-
       const curSpeedGain = modeRef.current === '2player' ? 0.6 : settings.speedGain;
       const curMaxSpeed  = modeRef.current === '2player' ? 28  : settings.maxSpeed;
 
-      // P1 paddle collision
-      if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dy > 0)) {
-        const hitPoint = (ball.x - (player.x + player.width / 2)) / (player.width / 2);
-        let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-        if (difficulty === 'impossible') {
-          const rampGain = curSpeedGain + hitCountRef.current * 0.25;
-          const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
-          speed = Math.min(speed + rampGain, rampMax);
-          hitCountRef.current += 1;
-        } else {
-          speed = Math.min(speed + curSpeedGain, curMaxSpeed);
-        }
-        const angle = hitPoint * (Math.PI / 3);
-        ball.dx = Math.sin(angle) * speed;
-        ball.dy = -Math.cos(angle) * speed;
-        ball.y  = player.y - ball.size / 2;
-      }
+      if (modeRef.current === '2player') {
+        // Top/bottom walls bounce
+        if (ball.y < ball.size / 2)                  { ball.dy = Math.abs(ball.dy);  ball.y = ball.size / 2; }
+        if (ball.y > canvas.height - ball.size / 2)  { ball.dy = -Math.abs(ball.dy); ball.y = canvas.height - ball.size / 2; }
 
-      // Top paddle collision
-      if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dy < 0)) {
-        const hitPoint = (ball.x - (cpu.x + cpu.width / 2)) / (cpu.width / 2);
-        let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-        if (difficulty === 'impossible') {
-          const rampGain = curSpeedGain + hitCountRef.current * 0.25;
-          const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
-          speed = Math.min(speed + rampGain, rampMax);
-          hitCountRef.current += 1;
-        } else {
+        // Left paddle (P1) collision — ball moving left
+        if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dx < 0)) {
+          const hitPoint = (ball.y - (player.y + player.height / 2)) / (player.height / 2);
+          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          const angle = hitPoint * (Math.PI / 3);
+          ball.dx = Math.cos(angle) * speed;
+          ball.dy = Math.sin(angle) * speed;
+          ball.x  = player.x + player.width + ball.size / 2;
         }
-        const angle = hitPoint * (Math.PI / 3);
-        ball.dx = Math.sin(angle) * speed;
-        ball.dy = Math.cos(angle) * speed;
-        ball.y  = cpu.y + cpu.height + ball.size / 2;
-      }
 
-      // Scoring
-      if (ball.y > canvas.height + ball.size) {
-        cpuScoreRef.current += 1;
-        if (cpuScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('cpu'); return; }
-        resetBall();
-      }
-      if (ball.y < -ball.size) {
-        playerScoreRef.current += 1;
-        if (playerScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('player'); return; }
-        resetBall();
+        // Right paddle (P2) collision — ball moving right
+        if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dx > 0)) {
+          const hitPoint = (ball.y - (cpu.y + cpu.height / 2)) / (cpu.height / 2);
+          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+          speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          const angle = hitPoint * (Math.PI / 3);
+          ball.dx = -Math.cos(angle) * speed;
+          ball.dy = Math.sin(angle) * speed;
+          ball.x  = cpu.x - ball.size / 2;
+        }
+
+        // Scoring — ball exits left (P2 scores) or right (P1 scores)
+        if (ball.x > canvas.width + ball.size) {
+          playerScoreRef.current += 1;
+          if (playerScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('player'); return; }
+          resetBall();
+        }
+        if (ball.x < -ball.size) {
+          cpuScoreRef.current += 1;
+          if (cpuScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('cpu'); return; }
+          resetBall();
+        }
+      } else {
+        // Left/right walls bounce (solo mode)
+        if (ball.x < ball.size / 2)                  { ball.dx = Math.abs(ball.dx);  ball.x = ball.size / 2; }
+        if (ball.x > canvas.width - ball.size / 2)   { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.size / 2; }
+
+        // P1 paddle collision (bottom)
+        if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dy > 0)) {
+          const hitPoint = (ball.x - (player.x + player.width / 2)) / (player.width / 2);
+          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+          if (difficulty === 'impossible') {
+            const rampGain = curSpeedGain + hitCountRef.current * 0.25;
+            const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
+            speed = Math.min(speed + rampGain, rampMax);
+            hitCountRef.current += 1;
+          } else {
+            speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          }
+          const angle = hitPoint * (Math.PI / 3);
+          ball.dx = Math.sin(angle) * speed;
+          ball.dy = -Math.cos(angle) * speed;
+          ball.y  = player.y - ball.size / 2;
+        }
+
+        // Top paddle collision (CPU)
+        if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dy < 0)) {
+          const hitPoint = (ball.x - (cpu.x + cpu.width / 2)) / (cpu.width / 2);
+          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+          if (difficulty === 'impossible') {
+            const rampGain = curSpeedGain + hitCountRef.current * 0.25;
+            const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
+            speed = Math.min(speed + rampGain, rampMax);
+            hitCountRef.current += 1;
+          } else {
+            speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          }
+          const angle = hitPoint * (Math.PI / 3);
+          ball.dx = Math.sin(angle) * speed;
+          ball.dy = Math.cos(angle) * speed;
+          ball.y  = cpu.y + cpu.height + ball.size / 2;
+        }
+
+        // Scoring — ball exits bottom (CPU scores) or top (player scores)
+        if (ball.y > canvas.height + ball.size) {
+          cpuScoreRef.current += 1;
+          if (cpuScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('cpu'); return; }
+          resetBall();
+        }
+        if (ball.y < -ball.size) {
+          playerScoreRef.current += 1;
+          if (playerScoreRef.current >= WIN_SCORE) { setGameState('gameover'); setWinner('player'); return; }
+          resetBall();
+        }
       }
 
       // ── Draw ──
 
-      // Center line
+      // Center line — vertical for 2P, horizontal for solo
       ctx.setLineDash([8, 12]);
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
       ctx.lineWidth   = 2;
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
+      if (modeRef.current === '2player') {
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+      } else {
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+      }
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -330,54 +436,63 @@ export function PongGame() {
       }
       ctx.restore();
 
-      // P1 paddle (bottom)
+      // P1 paddle
       ctx.fillStyle = '#fff';
       ctx.beginPath();
       ctx.roundRect(player.x, player.y, player.width, player.height, 6);
       ctx.fill();
 
-      // Top paddle (full white in 2P, dimmed for CPU)
+      // P2 / CPU paddle
       ctx.fillStyle = modeRef.current === '2player' ? '#fff' : 'rgba(255,255,255,0.6)';
       ctx.beginPath();
       ctx.roundRect(cpu.x, cpu.y, cpu.width, cpu.height, 6);
       ctx.fill();
 
       // Scores
-      ctx.fillStyle   = 'rgba(255,255,255,0.2)';
-      ctx.font        = '700 80px system-ui, sans-serif';
-      ctx.textAlign   = 'center';
+      ctx.fillStyle    = 'rgba(255,255,255,0.2)';
+      ctx.font         = '700 80px system-ui, sans-serif';
+      ctx.textAlign    = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(`${cpuScoreRef.current}`,    canvas.width / 2, canvas.height / 2 - 30);
-      ctx.fillText(`${playerScoreRef.current}`, canvas.width / 2, canvas.height / 2 + 90);
-
-      // 2P control hints (shown near paddles)
       if (modeRef.current === '2player') {
-        ctx.fillStyle  = 'rgba(255,255,255,0.22)';
-        ctx.font       = '500 11px system-ui, sans-serif';
-        ctx.textAlign  = 'left';
-        ctx.fillText('P2  ·  A / D', 20, cpu.y - 10);
-        ctx.fillText('P1  ·  ← / →', 20, player.y - 10);
+        // P1 score left half, P2 score right half
+        ctx.fillText(`${playerScoreRef.current}`, canvas.width / 4,     canvas.height / 2 + 40);
+        ctx.fillText(`${cpuScoreRef.current}`,    canvas.width * 3 / 4, canvas.height / 2 + 40);
+      } else {
+        ctx.fillText(`${cpuScoreRef.current}`,    canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText(`${playerScoreRef.current}`, canvas.width / 2, canvas.height / 2 + 90);
+      }
+
+      // 2P control hints — shown near each paddle
+      if (modeRef.current === '2player') {
+        ctx.fillStyle    = 'rgba(255,255,255,0.22)';
+        ctx.font         = '500 11px system-ui, sans-serif';
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign    = 'left';
+        ctx.fillText('P1  ·  W / S', player.x + player.width + 10, canvas.height / 2);
+        ctx.textAlign    = 'right';
+        ctx.fillText('P2  ·  ↑ / ↓', cpu.x - 10, canvas.height / 2);
       }
 
       // Countdown overlay
       if (cd.active) {
         const elapsed = (performance.now() - cd.start) / 1000;
         const num     = COUNTDOWN_SECS - Math.floor(elapsed);
-        const pulse   = 1 - (elapsed % 1); // fades 1→0 within each second
+        const pulse   = 1 - (elapsed % 1);
         ctx.save();
         ctx.font         = '700 100px system-ui, sans-serif';
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle    = `rgba(255,255,255,${0.2 + 0.5 * pulse})`;
-        ctx.fillText(String(num), canvas.width / 2, canvas.height * 0.25);
+        const countdownY = canvas.height * 0.2;
+        ctx.fillText(String(num), canvas.width / 2, countdownY);
         ctx.restore();
       }
 
       // Impossible rally counter
       if (difficulty === 'impossible' && hitCountRef.current > 0) {
-        const heat = Math.min(hitCountRef.current / 10, 1); // 0→1 over first 10 hits
+        const heat = Math.min(hitCountRef.current / 10, 1);
         const r = Math.round(239);
-        const g = Math.round(68  * (1 - heat)); // fades green channel → pure red
+        const g = Math.round(68  * (1 - heat));
         const b = Math.round(68  * (1 - heat));
         ctx.save();
         ctx.font         = `700 ${13 + hitCountRef.current}px system-ui, sans-serif`;
@@ -463,7 +578,7 @@ export function PongGame() {
             >
               2 Player
             </button>
-            <p className="text-zinc-600 text-xs tracking-widest">P1: ← / →  ·  P2: A / D</p>
+            <p className="text-zinc-600 text-xs tracking-widest">P1: W / S  ·  P2: ↑ / ↓</p>
           </div>
 
           <p className="text-zinc-600 text-xs tracking-widest">First to {WIN_SCORE} wins · Press P to close</p>
