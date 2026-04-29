@@ -624,6 +624,7 @@ export function PongGame() {
         }
 
         // ── Boss logic ──
+        const wave = invaderWaveRef.current;
         const boss = bossRef.current;
         if (boss) {
           boss.phase = boss.hp <= boss.maxHp * 0.5 ? 2 : 1;
@@ -704,7 +705,6 @@ export function PongGame() {
           spawnInvaderWave(canvas);
         }
 
-        const wave = invaderWaveRef.current;
         const wavePressure = 1 + Math.max(0, wave - 1) * 0.2;
         const lateWaveBoost = wave >= 4 ? 1 + (wave - 3) * 0.18 : 1;
         const enemySpeed = (0.62 + wave * 0.17) * wavePressure * lateWaveBoost * dt;
