@@ -7,7 +7,7 @@ type Mode = 'solo' | '2player';
 type ArcadeGame = 'pong' | 'invaders';
 type InvaderOutcome = 'victory' | 'defeat' | null;
 
-type UpgradeKey = 'blaster' | 'damage' | 'thrusters' | 'spread' | 'hull';
+type UpgradeKey = 'blaster' | 'damage' | 'thrusters' | 'spread' | 'hull' | 'volley';
 
 type InvaderUpgradeState = Record<UpgradeKey, number>;
 
@@ -127,9 +127,15 @@ const UPGRADE_META: Record<UpgradeKey, { label: string; desc: string; baseCost: 
   },
   hull: {
     label: 'Hull Reinforcement',
-    desc: 'Start runs with extra lives.',
+    desc: 'Start each run with extra lives.',
     baseCost: 140,
     step: 85,
+  },
+  volley: {
+    label: 'Volley Cannon',
+    desc: 'Fire a fan of bullets. Up to 10 at once at max level.',
+    baseCost: 200,
+    step: 120,
   },
 };
 
@@ -158,6 +164,7 @@ export function PongGame() {
     thrusters: 0,
     spread: 0,
     hull: 0,
+    volley: 0,
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -379,7 +386,7 @@ export function PongGame() {
   }, []);
 
   const drawInvaderStore = useCallback(() => {
-    const order: UpgradeKey[] = ['blaster', 'damage', 'thrusters', 'spread', 'hull'];
+    const order: UpgradeKey[] = ['blaster', 'damage', 'thrusters', 'spread', 'hull', 'volley'];
     return (
       <div className="pointer-events-auto w-[min(760px,92vw)] rounded-3xl border border-zinc-700 bg-zinc-950/95 shadow-2xl flex flex-col max-h-[min(540px,88vh)]">
         <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-3 md:px-8 md:pt-8">
@@ -546,17 +553,30 @@ export function PongGame() {
           damage: baseDamage,
         };
 
-        playerBulletsRef.current.push(baseBullet);
-
-        const wantTriple = up.spread >= 2 || hasTriple;
-        const wantFive   = up.spread >= 5;
-        if (wantTriple) {
-          playerBulletsRef.current.push({ ...baseBullet, vx: -1.4, radius: 3.5 });
-          playerBulletsRef.current.push({ ...baseBullet, vx:  1.4, radius: 3.5 });
-        }
-        if (wantFive) {
-          playerBulletsRef.current.push({ ...baseBullet, vx: -2.4, radius: 3 });
-          playerBulletsRef.current.push({ ...baseBullet, vx:  2.4, radius: 3 });
+        if (up.volley > 0) {
+          // Volley cannon: fan of up to 10 bullets
+          const totalBullets = Math.min(10, 1 + up.volley * 2);
+          const maxVx = 3.8;
+          for (let i = 0; i < totalBullets; i += 1) {
+            const t = totalBullets === 1 ? 0 : (i / (totalBullets - 1)) * 2 - 1;
+            playerBulletsRef.current.push({
+              ...baseBullet,
+              vx: t * maxVx,
+              radius: Math.abs(t) < 0.01 ? 4 : 3.2,
+            });
+          }
+        } else {
+          playerBulletsRef.current.push(baseBullet);
+          const wantTriple = up.spread >= 2 || hasTriple;
+          const wantFive   = up.spread >= 5;
+          if (wantTriple) {
+            playerBulletsRef.current.push({ ...baseBullet, vx: -1.4, radius: 3.5 });
+            playerBulletsRef.current.push({ ...baseBullet, vx:  1.4, radius: 3.5 });
+          }
+          if (wantFive) {
+            playerBulletsRef.current.push({ ...baseBullet, vx: -2.4, radius: 3 });
+            playerBulletsRef.current.push({ ...baseBullet, vx:  2.4, radius: 3 });
+          }
         }
       };
 
@@ -666,11 +686,8 @@ export function PongGame() {
               boss.hp -= bullet.damage;
               bullets.splice(b, 1);
               if (boss.hp <= 0) {
-                bossRef.current = null;
                 invaderScoreRef.current += 2000;
-                const bossEarn = 350;
-                runCoinsRef.current += bossEarn;
-                setBankCoins(c => { const next = c + bossEarn; bankCoinsRef.current = next; return next; });
+                runCoinsRef.current += 350;
                 finishInvaders('victory');
                 return;
               }
