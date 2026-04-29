@@ -199,6 +199,7 @@ export function PongGame() {
   const invaderDirectionRef = useRef(1);
   const invaderScoreRef = useRef(0);
   const invaderWaveRef = useRef(1);
+  const invaderWaveNoticeUntilRef = useRef(0);
   const invaderLivesRef = useRef(3);
   const runCoinsRef = useRef(0);
   const invaderKeysRef = useRef({ left: false, right: false, fire: false });
@@ -275,6 +276,7 @@ export function PongGame() {
     setInvaderFinalStats({ score: 0, wave: 1, coins: 0 });
     invaderScoreRef.current = 0;
     invaderWaveRef.current = 1;
+    invaderWaveNoticeUntilRef.current = performance.now() + 1800;
     runCoinsRef.current = 0;
     invaderLivesRef.current = 3 + upgradesRef.current.hull;
     enemyShotTimerRef.current = 0;
@@ -325,6 +327,7 @@ export function PongGame() {
     playerBulletsRef.current = [];
     enemyBulletsRef.current = [];
     diveAttackersRef.current = [];
+    invaderWaveNoticeUntilRef.current = performance.now() + 1800;
     diveSpawnTimerRef.current = 0;
     invaderDirectionRef.current = 1;
 
@@ -900,12 +903,8 @@ export function PongGame() {
               activeBuffsRef.current.splice(shieldIdx, 1);
               continue;
             }
-            invaderLivesRef.current -= 1;
-            if (invaderLivesRef.current <= 0) {
-              finishInvaders('defeat');
-              return;
-            }
-            continue;
+            finishInvaders('defeat');
+            return;
           }
 
           if (shot.y > height + 30) eBullets.splice(i, 1);
@@ -1082,6 +1081,22 @@ export function PongGame() {
         ctx.fillText(hasShield ? `Coins +${runCoinsRef.current}  🛡 SHIELDED` : `Coins +${runCoinsRef.current}`, 22, 100);
         ctx.fillStyle = '#ff6f86';
         ctx.fillText(`Divers ${diveAttackersRef.current.length}`, 22, 122);
+
+        if (now < invaderWaveNoticeUntilRef.current) {
+          const remainingMs = invaderWaveNoticeUntilRef.current - now;
+          const fade = Math.min(1, remainingMs / 450);
+          ctx.save();
+          ctx.globalAlpha = fade;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(255,255,255,0.96)';
+          ctx.font = '900 52px system-ui, sans-serif';
+          ctx.fillText(`WAVE ${invaderWaveRef.current}`, width / 2, height / 2 - 8);
+          ctx.fillStyle = 'rgba(130,245,255,0.9)';
+          ctx.font = '700 18px system-ui, sans-serif';
+          ctx.fillText('INCOMING', width / 2, height / 2 + 26);
+          ctx.restore();
+          ctx.textAlign = 'left';
+        }
 
         // Active buff icons (top-right)
         if (buffsNow.length > 0) {
