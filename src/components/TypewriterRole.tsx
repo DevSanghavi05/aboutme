@@ -26,7 +26,7 @@ export function TypewriterRole() {
           setDisplayed(currentRole.slice(0, displayed.length + 1));
         }, TYPING_SPEED);
       } else {
-        // Finished typing — pause, then start deleting
+        // Finished typing - pause, then start deleting
         timeout = setTimeout(() => setIsDeleting(true), PAUSE_AFTER_TYPED);
       }
     } else {
@@ -36,7 +36,7 @@ export function TypewriterRole() {
           setDisplayed(displayed.slice(0, -1));
         }, DELETE_SPEED);
       } else {
-        // Finished deleting — move to next role
+        // Finished deleting - move to next role
         timeout = setTimeout(() => {
           setIsDeleting(false);
           setRoleIndex((prev) => (prev + 1) % ROLES.length);

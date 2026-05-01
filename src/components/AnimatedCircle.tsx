@@ -11,7 +11,7 @@ import CardCarousel from "./CardCarousel";
 
 // ── Generate radial tick lines like the Face ID reference ──
 const TOTAL_TICKS = 60;
-const RADIUS = 270; // Inner end of tick — pushed out for spacing from circle
+const RADIUS = 270; // Inner end of tick - pushed out for spacing from circle
 const TICK_LENGTH = 18; // Default short tick length
 
 function generateTicks() {
@@ -119,7 +119,7 @@ export function AnimatedCircle() {
     <div ref={containerRef} className="h-[400vh] w-full relative bg-[#fdfdfd]">
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
 
-        {/* Central Circle Container — 520px desktop */}
+        {/* Central Circle Container - 520px desktop */}
         <div className="relative flex items-center justify-center z-10 w-[340px] h-[340px] md:w-[520px] md:h-[520px]">
 
           {/* Radial Tick Ring (Face ID style) with warp effect */}
@@ -142,7 +142,7 @@ export function AnimatedCircle() {
               />
             </motion.div>
 
-            {/* Layer 2: Name — Jvalaj-inspired hero */}
+            {/* Layer 2: Name - Jvalaj-inspired hero */}
             <motion.div
               className="absolute inset-0 flex flex-col items-start justify-center bg-white z-10 px-8 md:px-14 pointer-events-none"
               style={{ opacity: nameOpacity, y: nameY }}
@@ -164,7 +164,7 @@ export function AnimatedCircle() {
               </div>
             </motion.div>
 
-            {/* Layer 3: Card 1 — Education */}
+            {/* Layer 3: Card 1 - Education */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center bg-white z-20 p-6 md:p-10 pointer-events-auto"
               style={{ opacity: card1Opacity, y: card1Y, display: card1Display }}
@@ -194,7 +194,7 @@ export function AnimatedCircle() {
               </motion.div>
             </motion.div>
 
-            {/* Layer 4: Card 2 — Accomplishments */}
+            {/* Layer 4: Card 2 - Accomplishments */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center bg-white z-30 p-4 md:p-6 pointer-events-auto"
               style={{ opacity: card2Opacity, y: card2Y, display: card2Display }}
@@ -212,7 +212,7 @@ export function AnimatedCircle() {
               </motion.div>
             </motion.div>
 
-            {/* Layer 5: Card 3 — Contact */}
+            {/* Layer 5: Card 3 - Contact */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center bg-white z-40 p-6 md:p-10 pointer-events-auto"
               style={{ opacity: card3Opacity, y: card3Y, display: card3Display }}

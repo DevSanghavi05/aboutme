@@ -6,70 +6,58 @@ type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
 type ArcadeGame = 'pong' | 'invaders';
 type InvaderOutcome = 'victory' | 'defeat' | null;
+type BulletType = 'machinegun' | 'bazooka' | 'electric';
 
-type UpgradeKey = 'blaster' | 'damage' | 'thrusters' | 'spread' | 'hull' | 'volley';
+type UpgradeKey = 'blaster' | 'damage' | 'thrusters' | 'spread' | 'volley';
 
 type InvaderUpgradeState = Record<UpgradeKey, number>;
 
 type Bullet = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  radius: number;
-  damage: number;
+  x: number; y: number; vx: number; vy: number;
+  radius: number; damage: number; kind?: BulletType;
 };
 
 type Enemy = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  hp: number;
+  x: number; y: number; width: number; height: number; hp: number; maxHp: number;
 };
 
 type EnemyBullet = {
-  x: number;
-  y: number;
-  vy: number;
-  radius: number;
+  x: number; y: number; vy: number; radius: number;
 };
 
 type DiveAttacker = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  hp: number;
-  steer: number;
+  x: number; y: number; vx: number; vy: number;
+  size: number; hp: number; steer: number;
 };
 
 type Boss = {
-  x: number;
-  y: number;
-  vx: number;
-  width: number;
-  height: number;
-  hp: number;
-  maxHp: number;
-  shotTimer: number;
-  phase: number;
+  x: number; y: number; vx: number;
+  width: number; height: number;
+  hp: number; maxHp: number;
+  shotTimer: number; phase: number;
 };
 
 type PowerUpKind = 'rapidfire' | 'tripleshot' | 'speed' | 'shield';
 
 type PowerUpDrop = {
-  x: number;
-  y: number;
-  vy: number;
-  kind: PowerUpKind;
-  id: number;
+  x: number; y: number; vy: number; kind: PowerUpKind; id: number;
 };
 
 type ActiveBuff = {
-  kind: PowerUpKind;
-  expiresAt: number;
+  kind: PowerUpKind; expiresAt: number;
+};
+
+type Particle = {
+  x: number; y: number; vx: number; vy: number;
+  life: number; maxLife: number; r: number; color: string;
+};
+
+type ElectricArc = {
+  x1: number; y1: number; x2: number; y2: number; life: number;
+};
+
+type ScorePopup = {
+  x: number; y: number; text: string; vy: number; life: number; color: string;
 };
 
 const POWERUP_COLORS: Record<PowerUpKind, string> = {
@@ -84,7 +72,20 @@ const POWERUP_LABELS: Record<PowerUpKind, string> = {
   speed:      '▶',
   shield:     '◈',
 };
-const POWERUP_DURATION = 6000; // ms
+
+const BULLET_LABELS: Record<BulletType, string> = {
+  machinegun: '▶▶ M-GUN',
+  bazooka:    '◉ BAZOOKA',
+  electric:   '⚡ ELECTRIC',
+};
+
+const BULLET_COLORS: Record<BulletType, string> = {
+  machinegun: '#ffe040',
+  bazooka:    '#ff8040',
+  electric:   '#b060ff',
+};
+
+const POWERUP_DURATION = 6000;
 const POWERUP_KINDS: PowerUpKind[] = ['rapidfire', 'tripleshot', 'speed', 'shield'];
 let _puIdCounter = 0;
 
@@ -97,46 +98,15 @@ const DIFFICULTY_SETTINGS = {
 
 const WIN_SCORE = 5;
 const COUNTDOWN_SECS = 3;
-
 const MAX_UPGRADE_LEVEL = 6;
+const INVADER_TOTAL_WAVES = 12;
 
 const UPGRADE_META: Record<UpgradeKey, { label: string; desc: string; baseCost: number; step: number }> = {
-  blaster: {
-    label: 'Blaster Cooling',
-    desc: 'Shoot faster with tighter cooldown.',
-    baseCost: 80,
-    step: 55,
-  },
-  damage: {
-    label: 'Plasma Damage',
-    desc: 'Each shot hits harder.',
-    baseCost: 120,
-    step: 70,
-  },
-  thrusters: {
-    label: 'Thruster Power',
-    desc: 'Move your ship faster.',
-    baseCost: 90,
-    step: 60,
-  },
-  spread: {
-    label: 'Spread Shot',
-    desc: 'Unlock side projectiles for crowd control.',
-    baseCost: 160,
-    step: 95,
-  },
-  hull: {
-    label: 'Hull Reinforcement',
-    desc: 'Start each run with extra lives.',
-    baseCost: 140,
-    step: 85,
-  },
-  volley: {
-    label: 'Volley Cannon',
-    desc: 'Fire a fan of bullets. Up to 10 at once at max level.',
-    baseCost: 200,
-    step: 120,
-  },
+  blaster:   { label: 'Blaster Cooling',    desc: 'Shoot faster with tighter cooldown.',               baseCost: 140, step: 90 },
+  damage:    { label: 'Plasma Damage',      desc: 'Each shot hits harder.',                             baseCost: 190, step: 120 },
+  thrusters: { label: 'Thruster Power',     desc: 'Move your ship faster.',                            baseCost: 160, step: 100 },
+  spread:    { label: 'Spread Shot',        desc: 'Unlock side projectiles for crowd control.',        baseCost: 260, step: 150 },
+  volley:    { label: 'Volley Cannon',      desc: 'Fire a fan of bullets. Up to 10 at once at max.', baseCost: 340, step: 190 },
 };
 
 const getUpgradeCost = (key: UpgradeKey, level: number): number => {
@@ -145,6 +115,22 @@ const getUpgradeCost = (key: UpgradeKey, level: number): number => {
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(value, max));
+
+// Draw a lightning bolt between two points
+function drawLightning(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, segments: number) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  const dx = x2 - x1, dy = y2 - y1;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const jitter = (Math.random() - 0.5) * 22;
+    const px = x1 + dx * t + (-dy / Math.hypot(dx, dy)) * jitter;
+    const py = y1 + dy * t + (dx / Math.hypot(dx, dy)) * jitter;
+    ctx.lineTo(px, py);
+  }
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
 
 export function PongGame() {
   const [isOpen, setIsOpen] = useState(false);
@@ -158,13 +144,15 @@ export function PongGame() {
   const [invaderFinalStats, setInvaderFinalStats] = useState({ score: 0, wave: 1, coins: 0 });
   const [bankCoins, setBankCoins] = useState(0);
   const [storeOpen, setStoreOpen] = useState(false);
+  const [bulletType, setBulletType] = useState<BulletType>(() => {
+    try {
+      const saved = localStorage.getItem('invaders_weapon') as BulletType | null;
+      if (saved === 'machinegun' || saved === 'bazooka' || saved === 'electric') return saved;
+    } catch {}
+    return 'machinegun';
+  });
   const [upgrades, setUpgrades] = useState<InvaderUpgradeState>({
-    blaster: 0,
-    damage: 0,
-    thrusters: 0,
-    spread: 0,
-    hull: 0,
-    volley: 0,
+    blaster: 0, damage: 0, thrusters: 0, spread: 0, volley: 0,
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -177,9 +165,7 @@ export function PongGame() {
   const cpuRef    = useRef({ x: 300, y: 40, width: 120, height: 12 });
   const ballRef   = useRef({ x: 300, y: 200, dx: 0, dy: 0, size: 50 });
   const mouseRef  = useRef(300);
-  // keysRef: P1 — left/right for solo, up/down for 2P
   const keysRef   = useRef({ left: false, right: false, up: false, down: false });
-  // keys2Ref: P2 — up/down arrows
   const keys2Ref  = useRef({ up: false, down: false });
   const inputModeRef = useRef<'mouse' | 'keyboard'>('mouse');
   const modeRef   = useRef<Mode>('solo');
@@ -208,19 +194,22 @@ export function PongGame() {
   const diveSpawnTimerRef = useRef(0);
   const starsRef = useRef<{ x: number; y: number; r: number; s: number }[]>([]);
 
-  useEffect(() => {
-    storeOpenRef.current = storeOpen;
-  }, [storeOpen]);
+  // New gameplay refs
+  const particlesRef = useRef<Particle[]>([]);
+  const electricArcsRef = useRef<ElectricArc[]>([]);
+  const scorePopupsRef = useRef<ScorePopup[]>([]);
+  const bulletTypeRef = useRef<BulletType>('machinegun');
+  const lastElectricShotRef = useRef(0);
+  const screenShakeRef = useRef(0);
 
+  useEffect(() => { storeOpenRef.current = storeOpen; }, [storeOpen]);
+  useEffect(() => { bankCoinsRef.current = bankCoins; }, [bankCoins]);
+  useEffect(() => { upgradesRef.current = upgrades; }, [upgrades]);
   useEffect(() => {
-    bankCoinsRef.current = bankCoins;
-  }, [bankCoins]);
+    bulletTypeRef.current = bulletType;
+    try { localStorage.setItem('invaders_weapon', bulletType); } catch {}
+  }, [bulletType]);
 
-  useEffect(() => {
-    upgradesRef.current = upgrades;
-  }, [upgrades]);
-
-  // Toggle overlay with P key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'p') {
@@ -278,7 +267,7 @@ export function PongGame() {
     invaderWaveRef.current = 1;
     invaderWaveNoticeUntilRef.current = performance.now() + 1800;
     runCoinsRef.current = 0;
-    invaderLivesRef.current = 3 + upgradesRef.current.hull;
+    invaderLivesRef.current = 3;
     enemyShotTimerRef.current = 0;
     diveSpawnTimerRef.current = 0;
     lastShotAtRef.current = 0;
@@ -286,6 +275,20 @@ export function PongGame() {
     powerUpDropsRef.current = [];
     activeBuffsRef.current = [];
     invaderKeysRef.current = { left: false, right: false, fire: false };
+    particlesRef.current = [];
+    electricArcsRef.current = [];
+    scorePopupsRef.current = [];
+    const savedWeapon = (() => {
+      try {
+        const s = localStorage.getItem('invaders_weapon') as BulletType | null;
+        if (s === 'machinegun' || s === 'bazooka' || s === 'electric') return s;
+      } catch {}
+      return 'machinegun';
+    })();
+    bulletTypeRef.current = savedWeapon;
+    setBulletType(savedWeapon);
+    lastElectricShotRef.current = 0;
+    screenShakeRef.current = 0;
   }, []);
 
   const finishPong = useCallback((nextWinner: 'player' | 'cpu') => {
@@ -310,20 +313,17 @@ export function PongGame() {
       if (level >= MAX_UPGRADE_LEVEL) return prev;
       const price = getUpgradeCost(key, level);
       if (bankCoinsRef.current < price) return prev;
-
       setBankCoins(c => {
         const next = c - price;
         bankCoinsRef.current = next;
         return next;
       });
-
       return { ...prev, [key]: level + 1 };
     });
   }, []);
 
   const spawnInvaderWave = useCallback((canvas: HTMLCanvasElement) => {
     const wave = invaderWaveRef.current;
-
     playerBulletsRef.current = [];
     enemyBulletsRef.current = [];
     diveAttackersRef.current = [];
@@ -331,38 +331,24 @@ export function PongGame() {
     diveSpawnTimerRef.current = 0;
     invaderDirectionRef.current = 1;
 
-    // Wave 8 = final boss — no grid enemies
-    if (wave >= 8) {
+    if (wave >= INVADER_TOTAL_WAVES) {
       invadersRef.current = [];
-      const bossHp = 420;
+      const bossHp = 560 + (wave - INVADER_TOTAL_WAVES) * 220;
       bossRef.current = {
-        x: canvas.width / 2 - 80,
-        y: 70,
-        vx: 2.6,
-        width: 160,
-        height: 52,
-        hp: bossHp,
-        maxHp: bossHp,
-        shotTimer: 0,
-        phase: 1,
+        x: canvas.width / 2 - 80, y: 70,
+        vx: 2.6, width: 160, height: 52,
+        hp: bossHp, maxHp: bossHp,
+        shotTimer: 0, phase: 1,
       };
       return;
     }
 
     bossRef.current = null;
-
-    // Enemy count: 5 on wave 1, grows steadily
     const baseCount = 5 + (wave - 1) * 8;
     const totalEnemies = Math.min(baseCount, 80);
-    const enemyW = 38;
-    const enemyH = 24;
-    const gapX = 12;
-    const gapY = 10;
-
-    // Compute grid dimensions that fit totalEnemies
+    const enemyW = 38, enemyH = 24, gapX = 12, gapY = 10;
     const cols = clamp(Math.ceil(Math.sqrt(totalEnemies * 1.6)), 5, 13);
     const rows = Math.ceil(totalEnemies / cols);
-
     const formationWidth = cols * enemyW + (cols - 1) * gapX;
     const startX = (canvas.width - formationWidth) / 2;
     const startY = 80;
@@ -370,16 +356,11 @@ export function PongGame() {
 
     const enemies: Enemy[] = [];
     let placed = 0;
-    for (let row = 0; row < rows && placed < totalEnemies; row += 1) {
-      for (let col = 0; col < cols && placed < totalEnemies; col += 1) {
-        enemies.push({
-          x: startX + col * (enemyW + gapX),
-          y: startY + row * (enemyH + gapY),
-          width: enemyW,
-          height: enemyH,
-          hp: hpBase + (row === 0 ? 1 : 0),
-        });
-        placed += 1;
+    for (let row = 0; row < rows && placed < totalEnemies; row++) {
+      for (let col = 0; col < cols && placed < totalEnemies; col++) {
+        const hp = hpBase + (row === 0 ? 1 : 0);
+        enemies.push({ x: startX + col * (enemyW + gapX), y: startY + row * (enemyH + gapY), width: enemyW, height: enemyH, hp, maxHp: hp });
+        placed++;
       }
     }
 
@@ -389,60 +370,80 @@ export function PongGame() {
   }, []);
 
   const drawInvaderStore = useCallback(() => {
-    const order: UpgradeKey[] = ['blaster', 'damage', 'thrusters', 'spread', 'hull', 'volley'];
+    const order: UpgradeKey[] = ['blaster', 'damage', 'thrusters', 'spread', 'volley'];
+    const weaponDescs: Record<BulletType, string> = {
+      machinegun: 'Extremely rapid fire · low damage per shot',
+      bazooka:    'Slow · massive AOE explosion on impact',
+      electric:   'Chain lightning · hits tens of enemies at once',
+    };
     return (
-      <div className="pointer-events-auto w-[min(760px,92vw)] rounded-3xl border border-zinc-700 bg-zinc-950/95 shadow-2xl flex flex-col max-h-[min(540px,88vh)]">
+      <div className="pointer-events-auto w-[min(760px,92vw)] rounded-3xl border border-zinc-700 bg-zinc-950/95 shadow-2xl flex flex-col max-h-[min(580px,88vh)]">
         <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-3 md:px-8 md:pt-8">
           <h3 className="text-white text-2xl font-black tracking-[0.12em] uppercase">Ship Upgrades</h3>
           <p className="text-emerald-300 text-sm tracking-widest uppercase">Coins: {bankCoins}</p>
         </div>
 
-        <div
-          className="overflow-y-auto flex-1 min-h-0 px-6 md:px-8 pb-2"
-          style={{ scrollbarWidth: 'auto', scrollbarColor: '#52525b transparent' }}
-          onWheel={e => e.stopPropagation()}
-        >
-        <div className="grid gap-3">
-          {order.map((key) => {
-            const meta = UPGRADE_META[key];
-            const level = upgrades[key];
-            const maxed = level >= MAX_UPGRADE_LEVEL;
-            const price = getUpgradeCost(key, level);
-            const afford = bankCoins >= price;
-            return (
-              <div key={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-white text-sm font-bold tracking-wide">{meta.label}</p>
-                  <p className="text-zinc-400 text-xs">{meta.desc}</p>
-                  <p className="text-zinc-500 text-[11px] mt-1 uppercase tracking-widest">Level {level}/{MAX_UPGRADE_LEVEL}</p>
-                </div>
+        {/* Weapon selector */}
+        <div className="px-6 md:px-8 pb-4 border-b border-zinc-800/60">
+          <p className="text-zinc-500 text-[10px] tracking-widest uppercase mb-2">Weapon</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['machinegun', 'bazooka', 'electric'] as BulletType[]).map(type => {
+              const selected = bulletType === type;
+              return (
                 <button
-                  onClick={() => purchaseUpgrade(key)}
-                  disabled={maxed || !afford}
-                  className="cursor-target px-4 py-2 rounded-lg border border-dashed border-zinc-600 text-xs font-bold tracking-[0.1em] uppercase text-white disabled:opacity-35 disabled:cursor-not-allowed hover:border-emerald-400 hover:bg-emerald-400/10 transition"
+                  key={type}
+                  onClick={() => { setBulletType(type); bulletTypeRef.current = type; }}
+                  className={`flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-all duration-100 ${
+                    selected
+                      ? 'border-white bg-zinc-700 text-white'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                  }`}
                 >
-                  {maxed ? 'Max' : `${price} C`}
+                  <span className="text-[11px] font-bold tracking-widest uppercase">{BULLET_LABELS[type]}</span>
+                  <span className="text-[10px] font-normal mt-0.5 leading-tight opacity-70">{weaponDescs[type]}</span>
                 </button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
         </div>
 
+        <div className="overflow-y-auto flex-1 min-h-0 px-6 md:px-8 pb-2" style={{ scrollbarWidth: 'auto', scrollbarColor: '#52525b transparent' }} onWheel={e => e.stopPropagation()}>
+          <div className="grid gap-3">
+            {order.map((key) => {
+              const meta = UPGRADE_META[key];
+              const level = upgrades[key];
+              const maxed = level >= MAX_UPGRADE_LEVEL;
+              const price = getUpgradeCost(key, level);
+              const afford = bankCoins >= price;
+              return (
+                <div key={key} className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-white text-sm font-bold tracking-wide">{meta.label}</p>
+                    <p className="text-zinc-400 text-xs">{meta.desc}</p>
+                    <p className="text-zinc-500 text-[11px] mt-1 uppercase tracking-widest">Level {level}/{MAX_UPGRADE_LEVEL}</p>
+                  </div>
+                  <button
+                    onClick={() => purchaseUpgrade(key)}
+                    disabled={maxed || !afford}
+                    className="cursor-target px-4 py-2 rounded-lg border border-dashed border-zinc-600 text-xs font-bold tracking-[0.1em] uppercase text-white disabled:opacity-35 disabled:cursor-not-allowed hover:border-emerald-400 hover:bg-emerald-400/10 transition"
+                  >
+                    {maxed ? 'Max' : `${price} C`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         <div className="flex items-center justify-between text-xs text-zinc-500 tracking-wide px-6 py-4 md:px-8 border-t border-zinc-800/60">
-          <p>Earn coins by destroying invaders and clearing waves.</p>
-          <button
-            onClick={() => setStoreOpen(false)}
-            className="cursor-target px-3 py-2 rounded-lg border border-zinc-700 hover:border-white hover:bg-white/5 text-white text-[11px] uppercase tracking-[0.12em]"
-          >
+          <p>Coins are rare - earned by clearing waves and hitting enemies.</p>
+          <button onClick={() => setStoreOpen(false)} className="cursor-target px-3 py-2 rounded-lg border border-zinc-700 hover:border-white hover:bg-white/5 text-white text-[11px] uppercase tracking-[0.12em]">
             Close
           </button>
         </div>
       </div>
     );
-  }, [bankCoins, purchaseUpgrade, upgrades]);
+  }, [bankCoins, bulletType, purchaseUpgrade, upgrades]);
 
-  // Hide the TargetCursor boxing effect during gameplay
   useEffect(() => {
     const cursorEl = document.querySelector('.target-cursor-wrapper') as HTMLElement | null;
     if (!cursorEl) return;
@@ -454,7 +455,7 @@ export function PongGame() {
     return () => { cursorEl.style.display = ''; };
   }, [isOpen, gameState]);
 
-  // Game loop
+  // ── Game loop ──
   useEffect(() => {
     if (!isOpen || gameState !== 'playing') {
       document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -463,7 +464,6 @@ export function PongGame() {
     }
 
     document.body.style.overflow = 'hidden';
-
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -478,8 +478,8 @@ export function PongGame() {
         invPlayerRef.current.x = canvas.width / 2 - invPlayerRef.current.width / 2;
         invPlayerRef.current.y = canvas.height - 76;
 
-        if (starsRef.current.length === 0 || starsRef.current.length < 130) {
-          starsRef.current = Array.from({ length: 140 }, () => ({
+        if (starsRef.current.length < 130) {
+          starsRef.current = Array.from({ length: 160 }, () => ({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             r: Math.random() * 1.8 + 0.4,
@@ -491,26 +491,23 @@ export function PongGame() {
       resizeInvaders();
       spawnInvaderWave(canvas);
 
-      const onResize = () => {
-        resizeInvaders();
-      };
+      const onResize = () => resizeInvaders();
 
       const onKeyDown = (e: KeyboardEvent) => {
         const key = e.key.toLowerCase();
-        if (key === 'arrowleft' || key === 'a') {
-          invaderKeysRef.current.left = true;
-          e.preventDefault();
-        }
-        if (key === 'arrowright' || key === 'd') {
-          invaderKeysRef.current.right = true;
-          e.preventDefault();
-        }
-        if (key === ' ' || key === 'spacebar') {
-          invaderKeysRef.current.fire = true;
-          e.preventDefault();
-        }
-        if (key === 'b') {
-          setStoreOpen(prev => !prev);
+        if (key === 'arrowleft' || key === 'a') { invaderKeysRef.current.left = true; e.preventDefault(); }
+        if (key === 'arrowright' || key === 'd') { invaderKeysRef.current.right = true; e.preventDefault(); }
+        if (key === ' ' || key === 'spacebar') { invaderKeysRef.current.fire = true; e.preventDefault(); }
+        if (key === 'b') { setStoreOpen(prev => !prev); e.preventDefault(); }
+        // Weapon switching
+        if (key === '1') { bulletTypeRef.current = 'machinegun'; setBulletType('machinegun'); e.preventDefault(); }
+        if (key === '2') { bulletTypeRef.current = 'bazooka';    setBulletType('bazooka');    e.preventDefault(); }
+        if (key === '3') { bulletTypeRef.current = 'electric';   setBulletType('electric');   e.preventDefault(); }
+        if (key === 'q') {
+          const types: BulletType[] = ['machinegun', 'bazooka', 'electric'];
+          const next = types[(types.indexOf(bulletTypeRef.current) + 1) % types.length];
+          bulletTypeRef.current = next;
+          setBulletType(next);
           e.preventDefault();
         }
       };
@@ -535,52 +532,326 @@ export function PongGame() {
 
       let prevFrame = performance.now();
 
+      // ── Helpers ──
+      const spawnExplosion = (x: number, y: number, count: number, colors: string[]) => {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 4.5;
+          particlesRef.current.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 350 + Math.random() * 350,
+            maxLife: 700,
+            r: 1.5 + Math.random() * 3.5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+          });
+        }
+      };
+
+      const killEnemyAt = (e: number, enemies: Enemy[], cx: number, cy: number, popColor: string) => {
+        const earn = 2 + invaderWaveRef.current;
+        invaderScoreRef.current += 100;
+        runCoinsRef.current += earn;
+        setBankCoins(c => { const next = c + earn; bankCoinsRef.current = next; return next; });
+        scorePopupsRef.current.push({ x: cx, y: cy, text: '+100', vy: -1.2, life: 900, color: popColor });
+        if (Math.random() < 0.07) {
+          const kind = POWERUP_KINDS[Math.floor(Math.random() * POWERUP_KINDS.length)];
+          powerUpDropsRef.current.push({ x: cx, y: cy, vy: 1.8, kind, id: ++_puIdCounter });
+        }
+        spawnExplosion(cx, cy, 12, ['#ff6644', '#ffaa44', '#ff4422', '#ffcc88', '#ff8800']);
+        enemies.splice(e, 1);
+      };
+
+      // Hits every enemy within range simultaneously - true spread damage
+      const doElectricSpread = (hitX: number, hitY: number, enemies: Enemy[], damage: number, now: number) => {
+        if (now - lastElectricShotRef.current < 500) return;
+        lastElectricShotRef.current = now;
+
+        const range = 280;
+        screenShakeRef.current = 8;
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const ex = enemies[i].x + enemies[i].width / 2;
+          const ey = enemies[i].y + enemies[i].height / 2;
+          if (Math.hypot(ex - hitX, ey - hitY) > range) continue;
+
+          electricArcsRef.current.push({ x1: hitX, y1: hitY, x2: ex, y2: ey, life: 400 });
+          for (let j = 0; j < 5; j++) {
+            particlesRef.current.push({
+              x: ex + (Math.random() - 0.5) * 16, y: ey + (Math.random() - 0.5) * 16,
+              vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+              life: 200, maxLife: 200, r: 1.5, color: Math.random() > 0.5 ? '#b060ff' : '#80c0ff',
+            });
+          }
+          enemies[i].hp -= damage * 0.85;
+          if (enemies[i].hp <= 0) killEnemyAt(i, enemies, ex, ey, '#b060ff');
+        }
+      };
+
+      const doBazookaExplosion = (x: number, y: number, damage: number, enemies: Enemy[]) => {
+        const radius = 140;
+        spawnExplosion(x, y, 40, ['#ff8040', '#ff4422', '#ffcc00', '#ff6600', '#ff2200', '#ffffff']);
+        particlesRef.current.push({ x, y, vx: 0, vy: 0, life: 440, maxLife: 440, r: radius, color: '#ff8040' });
+        screenShakeRef.current = 20;
+        for (let e = enemies.length - 1; e >= 0; e--) {
+          const ex = enemies[e].x + enemies[e].width / 2;
+          const ey = enemies[e].y + enemies[e].height / 2;
+          const d = Math.hypot(ex - x, ey - y);
+          if (d <= radius) {
+            enemies[e].hp -= damage * Math.max(0.4, 1 - d / radius * 0.6);
+            if (enemies[e].hp <= 0) killEnemyAt(e, enemies, ex, ey, '#ff8040');
+          }
+        }
+      };
+
       const firePlayerShot = (now: number) => {
         const ship = invPlayerRef.current;
         const up = upgradesRef.current;
         const buffs = activeBuffsRef.current;
         const hasRapid = buffs.some(b => b.kind === 'rapidfire' && b.expiresAt > now);
         const hasTriple = buffs.some(b => b.kind === 'tripleshot' && b.expiresAt > now);
-        const cooldown = Math.max(60, (340 - up.blaster * 26) * (hasRapid ? 0.3 : 1));
+        const bType = bulletTypeRef.current;
+
+        let cooldown: number;
+        if (bType === 'machinegun') {
+          cooldown = Math.max(18, 55 - up.blaster * 5) * (hasRapid ? 0.4 : 1);
+        } else if (bType === 'bazooka') {
+          cooldown = 500 * (hasRapid ? 0.65 : 1);
+        } else {
+          // electric
+          cooldown = 500;
+        }
         if (now - lastShotAtRef.current < cooldown) return;
         lastShotAtRef.current = now;
 
-        const baseDamage = 1 + up.damage * 0.8;
         const mainSpeed = 8.4 + up.blaster * 0.35;
+        let baseDamage: number, baseRadius: number;
+        if (bType === 'machinegun') {
+          baseDamage = 0.5 + up.damage * 0.15;
+          baseRadius = 2.5;
+        } else if (bType === 'bazooka') {
+          baseDamage = 5 + up.damage * 1.5;
+          baseRadius = 8;
+        } else {
+          // electric
+          baseDamage = 2 + up.damage * 0.5;
+          baseRadius = 4.5;
+        }
+
         const baseBullet: Bullet = {
           x: ship.x + ship.width / 2,
           y: ship.y,
           vx: 0,
-          vy: -mainSpeed,
-          radius: 4,
+          vy: bType === 'bazooka' ? -(mainSpeed * 0.65) : -mainSpeed,
+          radius: baseRadius,
           damage: baseDamage,
+          kind: bType,
         };
 
-        if (up.volley > 0) {
-          // Volley cannon: fan of up to 10 bullets
-          const totalBullets = Math.min(10, 1 + up.volley * 2);
-          const maxVx = 3.8;
-          for (let i = 0; i < totalBullets; i += 1) {
-            const t = totalBullets === 1 ? 0 : (i / (totalBullets - 1)) * 2 - 1;
-            playerBulletsRef.current.push({
-              ...baseBullet,
-              vx: t * maxVx,
-              radius: Math.abs(t) < 0.01 ? 4 : 3.2,
-            });
-          }
-        } else {
+        // Spread + volley upgrades now generate real multi-shot patterns.
+        const volleyCount = up.volley > 0 ? (1 + Math.ceil((up.volley / MAX_UPGRADE_LEVEL) * 9)) : 1;
+        const spreadCount = up.spread === 0 ? 1 : (up.spread >= 4 ? 3 : 2);
+        const buffCount = hasTriple ? 3 : 1;
+        const shotCount = clamp(Math.max(volleyCount, spreadCount, buffCount), 1, 10);
+        const angleStep = 0.055 + up.spread * 0.01;
+
+        if (shotCount === 1) {
           playerBulletsRef.current.push(baseBullet);
-          const wantTriple = up.spread >= 2 || hasTriple;
-          const wantFive   = up.spread >= 5;
-          if (wantTriple) {
-            playerBulletsRef.current.push({ ...baseBullet, vx: -1.4, radius: 3.5 });
-            playerBulletsRef.current.push({ ...baseBullet, vx:  1.4, radius: 3.5 });
-          }
-          if (wantFive) {
-            playerBulletsRef.current.push({ ...baseBullet, vx: -2.4, radius: 3 });
-            playerBulletsRef.current.push({ ...baseBullet, vx:  2.4, radius: 3 });
-          }
+          return;
         }
+
+        const center = (shotCount - 1) / 2;
+        for (let i = 0; i < shotCount; i++) {
+          const offset = i - center;
+          const theta = offset * angleStep;
+          const speed = bType === 'bazooka' ? (mainSpeed * 0.65) : mainSpeed;
+          const damageScale = 1 - Math.min(0.3, Math.abs(offset) * 0.04);
+          playerBulletsRef.current.push({
+            ...baseBullet,
+            vx: Math.sin(theta) * speed,
+            vy: -Math.cos(theta) * speed,
+            damage: baseDamage * damageScale,
+          });
+        }
+      };
+
+      // ── Draw helpers ──
+      const drawShip = (x: number, y: number, w: number, h: number, hasShield: boolean) => {
+        const cx = x + w / 2;
+        ctx.save();
+
+        // Engine glow
+        const engineGlow = ctx.createRadialGradient(cx, y + h + 6, 0, cx, y + h + 6, 22);
+        engineGlow.addColorStop(0, 'rgba(255,140,40,0.9)');
+        engineGlow.addColorStop(0.5, 'rgba(255,80,20,0.4)');
+        engineGlow.addColorStop(1, 'rgba(255,60,10,0)');
+        ctx.fillStyle = engineGlow;
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h + 4, 10, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shield ring
+        if (hasShield) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(136,136,255,0.6)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(cx, y + h / 2, w * 0.75, h * 1.2, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Wings
+        ctx.fillStyle = '#3ab8d8';
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x - 14, y + h + 8);
+        ctx.lineTo(x + 10, y + h * 0.55);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x + w, y + h);
+        ctx.lineTo(x + w + 14, y + h + 8);
+        ctx.lineTo(x + w - 10, y + h * 0.55);
+        ctx.closePath();
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = '#5ce8ff';
+        ctx.beginPath();
+        ctx.moveTo(cx, y - 10);
+        ctx.lineTo(x + w * 0.85, y + h);
+        ctx.lineTo(x + w * 0.6, y + h);
+        ctx.lineTo(cx, y + h * 0.6);
+        ctx.lineTo(x + w * 0.4, y + h);
+        ctx.lineTo(x + w * 0.15, y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cockpit
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h * 0.35, 5, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Weapon indicator color stripe
+        ctx.fillStyle = BULLET_COLORS[bulletTypeRef.current];
+        ctx.fillRect(cx - 12, y + h - 4, 24, 3);
+
+        ctx.restore();
+      };
+
+      const drawEnemy = (enemy: Enemy, now: number, index: number) => {
+        const { x, y, width: w, height: h, hp, maxHp } = enemy;
+        const cx = x + w / 2, cy = y + h / 2;
+        const hpFrac = hp / maxHp;
+        const wobble = Math.sin(now * 0.003 + index * 0.8) * 1.5;
+
+        ctx.save();
+
+        // Color shifts from green → red as hp drops
+        const r = Math.round(120 + (1 - hpFrac) * 135);
+        const g = Math.round(180 * hpFrac + 60);
+        const b = Math.round(80 + hpFrac * 40);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+
+        // Body
+        ctx.beginPath();
+        ctx.roundRect(x + 3, y + wobble, w - 6, h * 0.7, 5);
+        ctx.fill();
+
+        // Head dome
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h * 0.28 + wobble, w * 0.38, h * 0.32, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Legs
+        ctx.strokeStyle = `rgb(${r},${g},${b})`;
+        ctx.lineWidth = 2;
+        for (let leg = 0; leg < 3; leg++) {
+          const lx = x + w * 0.2 + leg * w * 0.3;
+          const ly = y + h * 0.7 + wobble;
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          ctx.lineTo(lx - 5, ly + h * 0.28);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          ctx.lineTo(lx + 5, ly + h * 0.28);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cx - 8, y + h * 0.22 + wobble, 5, 5);
+        ctx.fillRect(cx + 3, y + h * 0.22 + wobble, 5, 5);
+        ctx.fillStyle = '#111122';
+        ctx.fillRect(cx - 7, y + h * 0.23 + wobble, 3, 3);
+        ctx.fillRect(cx + 4, y + h * 0.23 + wobble, 3, 3);
+
+        ctx.restore();
+      };
+
+      const drawBoss = (boss: Boss, now: number) => {
+        const { x, y, width: bw, height: bh, hp, maxHp, phase } = boss;
+        const cx = x + bw / 2;
+        const hpPct = hp / maxHp;
+        const pulse = 0.85 + 0.15 * Math.sin(now * 0.006);
+        const isP2 = phase === 2;
+
+        ctx.save();
+
+        // Wings
+        ctx.fillStyle = isP2 ? '#cc1133' : '#991144';
+        ctx.beginPath();
+        ctx.moveTo(x - 20, y + bh * 0.3);
+        ctx.lineTo(x - 50, y + bh);
+        ctx.lineTo(x + 20, y + bh * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x + bw + 20, y + bh * 0.3);
+        ctx.lineTo(x + bw + 50, y + bh);
+        ctx.lineTo(x + bw - 20, y + bh * 0.6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = isP2 ? '#ff2244' : '#cc2266';
+        ctx.beginPath();
+        ctx.roundRect(x, y, bw, bh, 8);
+        ctx.fill();
+
+        // Cannon barrels
+        ctx.fillStyle = isP2 ? '#ff4466' : '#dd3355';
+        ctx.fillRect(cx - 50, y + bh, 10, 14);
+        ctx.fillRect(cx - 5, y + bh, 10, 18);
+        ctx.fillRect(cx + 40, y + bh, 10, 14);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 22, y + 12, 16, 14);
+        ctx.fillRect(x + bw - 38, y + 12, 16, 14);
+        ctx.fillStyle = isP2 ? '#ff0000' : '#111';
+        ctx.fillRect(x + 28, y + 15, 8, 8);
+        ctx.fillRect(x + bw - 32, y + 15, 8, 8);
+
+        // HP bar
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(x, y + bh + 10, bw, 8);
+        const barGrad = ctx.createLinearGradient(x, 0, x + bw * hpPct, 0);
+        barGrad.addColorStop(0, isP2 ? '#ff4422' : '#22ff88');
+        barGrad.addColorStop(1, isP2 ? '#ff8822' : '#88ffcc');
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(x, y + bh + 10, bw * hpPct, 8);
+
+        // Label
+        ctx.fillStyle = isP2 ? '#ff6688' : '#ff99aa';
+        ctx.font = `700 ${isP2 ? 14 : 12}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(isP2 ? '⚠ FINAL BOSS - PHASE 2' : 'FINAL BOSS', cx, y - 10);
+        ctx.textAlign = 'left';
+        ctx.restore();
       };
 
       const loopInvaders = () => {
@@ -592,23 +863,31 @@ export function PongGame() {
         const width = canvas.width;
         const height = canvas.height;
 
-        ctx.clearRect(0, 0, width, height);
+        // Screen shake decay
+        const shake = screenShakeRef.current;
+        const sx = shake > 0 ? (Math.random() - 0.5) * shake : 0;
+        const sy = shake > 0 ? (Math.random() - 0.5) * shake : 0;
+        screenShakeRef.current = Math.max(0, shake - 1.2 * dt);
 
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        ctx.translate(sx, sy);
+
+        // Background
         const bg = ctx.createLinearGradient(0, 0, 0, height);
-        bg.addColorStop(0, '#05070f');
-        bg.addColorStop(1, '#0c1222');
+        bg.addColorStop(0, '#04060e');
+        bg.addColorStop(1, '#090f1e');
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, width, height);
 
+        // Stars
         const stars = starsRef.current;
-        ctx.fillStyle = 'rgba(180,200,255,0.6)';
-        for (let i = 0; i < stars.length; i += 1) {
+        for (let i = 0; i < stars.length; i++) {
           const star = stars[i];
           star.y += star.s * dt;
-          if (star.y > height) {
-            star.y = 0;
-            star.x = Math.random() * width;
-          }
+          if (star.y > height) { star.y = 0; star.x = Math.random() * width; }
+          const brightness = 0.4 + star.r / 2.2 * 0.6;
+          ctx.fillStyle = `rgba(180,210,255,${brightness})`;
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
           ctx.fill();
@@ -617,6 +896,7 @@ export function PongGame() {
         if (storeOpenRef.current) {
           ctx.fillStyle = 'rgba(0,0,0,0.45)';
           ctx.fillRect(0, 0, width, height);
+          ctx.restore();
           requestRef.current = requestAnimationFrame(loopInvaders);
           return;
         }
@@ -629,24 +909,20 @@ export function PongGame() {
         const hasShield = buffsNow.some(b => b.kind === 'shield');
         const shipSpeed = (5.7 + up.thrusters * 0.75) * (hasSpeed ? 1.7 : 1);
 
-        if (invaderKeysRef.current.left) ship.x -= shipSpeed * dt;
+        if (invaderKeysRef.current.left)  ship.x -= shipSpeed * dt;
         if (invaderKeysRef.current.right) ship.x += shipSpeed * dt;
         ship.x = clamp(ship.x, 20, width - ship.width - 20);
+        if (invaderKeysRef.current.fire) firePlayerShot(now);
 
-        if (invaderKeysRef.current.fire) {
-          firePlayerShot(now);
-        }
-
+        // Update player bullets
         const bullets = playerBulletsRef.current;
-        for (let i = bullets.length - 1; i >= 0; i -= 1) {
+        for (let i = bullets.length - 1; i >= 0; i--) {
           bullets[i].x += bullets[i].vx * dt;
           bullets[i].y += bullets[i].vy * dt;
-          if (bullets[i].y < -20 || bullets[i].x < -20 || bullets[i].x > width + 20) {
-            bullets.splice(i, 1);
-          }
+          if (bullets[i].y < -30 || bullets[i].x < -30 || bullets[i].x > width + 30) bullets.splice(i, 1);
         }
 
-        // ── Boss logic ──
+        // Boss logic
         const wave = invaderWaveRef.current;
         const boss = bossRef.current;
         if (boss) {
@@ -655,7 +931,6 @@ export function PongGame() {
           boss.x += boss.vx * bossSpeed;
           if (boss.x <= 0 || boss.x + boss.width >= width) boss.vx *= -1;
 
-          // Boss shoots spread bursts
           boss.shotTimer += delta;
           const bossShotInterval = boss.phase === 2 ? 320 : 560;
           if (boss.shotTimer >= bossShotInterval) {
@@ -663,47 +938,36 @@ export function PongGame() {
             const cx = boss.x + boss.width / 2;
             const cy = boss.y + boss.height;
             const bulletCount = boss.phase === 2 ? 5 : 3;
-            for (let s = 0; s < bulletCount; s += 1) {
-              const spread = ((s - Math.floor(bulletCount / 2)) / Math.floor(bulletCount / 2)) * 3.5;
-              enemyBulletsRef.current.push({
-                x: cx,
-                y: cy,
-                vy: 5.5 + Math.abs(spread) * 0.4,
-                radius: 5.5,
-              });
-              // Mutate the last-pushed bullet's vx via a cast since EnemyBullet lacks vx —
-              // add vx directly to the object at runtime for boss bullets only
-              (enemyBulletsRef.current[enemyBulletsRef.current.length - 1] as EnemyBullet & { vx?: number }).vx = spread;
+            for (let s = 0; s < bulletCount; s++) {
+              const spread = ((s - Math.floor(bulletCount / 2)) / Math.max(1, Math.floor(bulletCount / 2))) * 3.5;
+              const eb: EnemyBullet & { vx?: number } = { x: cx, y: cy, vy: 5.5 + Math.abs(spread) * 0.4, radius: 5.5 };
+              eb.vx = spread;
+              enemyBulletsRef.current.push(eb);
             }
           }
 
-          // Check player bullets vs boss
-          for (let b = bullets.length - 1; b >= 0; b -= 1) {
+          for (let b = bullets.length - 1; b >= 0; b--) {
             const bullet = bullets[b];
-            if (
-              bullet.x > boss.x &&
-              bullet.x < boss.x + boss.width &&
-              bullet.y > boss.y &&
-              bullet.y < boss.y + boss.height
-            ) {
+            if (bullet.x > boss.x && bullet.x < boss.x + boss.width && bullet.y > boss.y && bullet.y < boss.y + boss.height) {
               boss.hp -= bullet.damage;
+              spawnExplosion(bullet.x, bullet.y, 5, ['#ff4488', '#ff8844', '#ffcc44']);
               bullets.splice(b, 1);
               if (boss.hp <= 0) {
                 invaderScoreRef.current += 2000;
-                runCoinsRef.current += 350;
+                const earn = 60;
+                runCoinsRef.current += earn;
+                setBankCoins(c => { const next = c + earn; bankCoinsRef.current = next; return next; });
+                scorePopupsRef.current.push({ x: boss.x + boss.width / 2, y: boss.y, text: '+2000 BOSS!', vy: -1.5, life: 1400, color: '#ffcc00' });
+                spawnExplosion(boss.x + boss.width / 2, boss.y + boss.height / 2, 40, ['#ff4488', '#ff8844', '#ffcc44', '#ff2222', '#ffaa00']);
                 finishInvaders('victory');
                 return;
               }
             }
           }
 
-          // Boss dive-ram into player
-          if (
-            boss.x < ship.x + ship.width + 16 &&
-            boss.x + boss.width > ship.x - 16 &&
-            boss.y + boss.height > ship.y - 16
-          ) {
+          if (boss.x < ship.x + ship.width + 16 && boss.x + boss.width > ship.x - 16 && boss.y + boss.height > ship.y - 16) {
             invaderLivesRef.current -= 1;
+            screenShakeRef.current = 18;
             if (invaderLivesRef.current <= 0) { finishInvaders('defeat'); return; }
             bossRef.current = null;
             finishInvaders('defeat');
@@ -714,76 +978,59 @@ export function PongGame() {
         const enemies = invadersRef.current;
         if (!boss && enemies.length === 0 && diveAttackersRef.current.length === 0) {
           invaderWaveRef.current += 1;
-          const waveBonus = 80 + invaderWaveRef.current * 20;
+          const waveBonus = 15 + invaderWaveRef.current * 5;
           runCoinsRef.current += waveBonus;
-          setBankCoins(c => {
-            const next = c + waveBonus;
-            bankCoinsRef.current = next;
-            return next;
-          });
-
+          setBankCoins(c => { const next = c + waveBonus; bankCoinsRef.current = next; return next; });
+          scorePopupsRef.current.push({ x: width / 2, y: height / 2, text: `WAVE CLEAR! +${waveBonus}`, vy: -0.8, life: 1600, color: '#ffcc00' });
           spawnInvaderWave(canvas);
         }
 
         const wavePressure = 1 + Math.max(0, wave - 1) * 0.2;
         const lateWaveBoost = wave >= 4 ? 1 + (wave - 3) * 0.18 : 1;
+        const endgamePressure = wave >= 9 ? 1 + (wave - 8) * 0.22 : 1;
         const enemySpeed = (0.62 + wave * 0.17) * wavePressure * lateWaveBoost * dt;
         let touchEdge = false;
 
-        for (let i = 0; i < enemies.length; i += 1) {
+        for (let i = 0; i < enemies.length; i++) {
           enemies[i].x += enemySpeed * invaderDirectionRef.current;
-          if (enemies[i].x <= 24 || enemies[i].x + enemies[i].width >= width - 24) {
-            touchEdge = true;
-          }
+          if (enemies[i].x <= 24 || enemies[i].x + enemies[i].width >= width - 24) touchEdge = true;
         }
 
         if (touchEdge) {
           invaderDirectionRef.current *= -1;
           const dropDistance = 20 + wave * 3;
-          for (let i = 0; i < enemies.length; i += 1) {
+          for (let i = 0; i < enemies.length; i++) {
             enemies[i].y += dropDistance;
-            if (enemies[i].y + enemies[i].height >= ship.y - 6) {
-              finishInvaders('defeat');
-              return;
-            }
+            if (enemies[i].y + enemies[i].height >= ship.y - 6) { finishInvaders('defeat'); return; }
           }
         }
 
-        for (let b = bullets.length - 1; b >= 0; b -= 1) {
+        // Bullet-enemy collisions
+        for (let b = bullets.length - 1; b >= 0; b--) {
           const bullet = bullets[b];
           let consumed = false;
-          for (let e = enemies.length - 1; e >= 0; e -= 1) {
+          for (let e = enemies.length - 1; e >= 0; e--) {
             const enemy = enemies[e];
-            if (
-              bullet.x > enemy.x &&
-              bullet.x < enemy.x + enemy.width &&
-              bullet.y > enemy.y &&
-              bullet.y < enemy.y + enemy.height
-            ) {
+            if (bullet.x > enemy.x && bullet.x < enemy.x + enemy.width && bullet.y > enemy.y && bullet.y < enemy.y + enemy.height) {
+              const cx = enemy.x + enemy.width / 2;
+              const cy = enemy.y + enemy.height / 2;
+
+              if (bullet.kind === 'bazooka') {
+                doBazookaExplosion(cx, cy, bullet.damage, enemies);
+                consumed = true;
+                break;
+              }
+
+              if (bullet.kind === 'electric') {
+                doElectricSpread(cx, cy, enemies, bullet.damage, now);
+              }
+
               enemy.hp -= bullet.damage;
               consumed = true;
+              spawnExplosion(cx, cy, 4, ['#ff6644', '#ffaa44']);
 
               if (enemy.hp <= 0) {
-                const earn = 12 + invaderWaveRef.current * 4;
-                invaderScoreRef.current += 100;
-                runCoinsRef.current += earn;
-                setBankCoins(c => {
-                  const next = c + earn;
-                  bankCoinsRef.current = next;
-                  return next;
-                });
-                // 22% chance to drop a power-up
-                if (Math.random() < 0.22) {
-                  const kind = POWERUP_KINDS[Math.floor(Math.random() * POWERUP_KINDS.length)];
-                  powerUpDropsRef.current.push({
-                    x: enemy.x + enemy.width / 2,
-                    y: enemy.y + enemy.height / 2,
-                    vy: 1.8,
-                    kind,
-                    id: ++_puIdCounter,
-                  });
-                }
-                enemies.splice(e, 1);
+                killEnemyAt(e, enemies, cx, cy, '#8ef9a8');
               }
               break;
             }
@@ -791,156 +1038,108 @@ export function PongGame() {
           if (consumed) bullets.splice(b, 1);
         }
 
-        // ── Power-up drops ──
+        // Power-up drops
         const drops = powerUpDropsRef.current;
-        for (let i = drops.length - 1; i >= 0; i -= 1) {
+        for (let i = drops.length - 1; i >= 0; i--) {
           const drop = drops[i];
           drop.y += drop.vy * dt;
-
-          // Collect
-          if (
-            drop.x > ship.x - 18 &&
-            drop.x < ship.x + ship.width + 18 &&
-            drop.y > ship.y - 18 &&
-            drop.y < ship.y + ship.height + 18
-          ) {
+          if (drop.x > ship.x - 18 && drop.x < ship.x + ship.width + 18 && drop.y > ship.y - 18 && drop.y < ship.y + ship.height + 18) {
             drops.splice(i, 1);
             if (drop.kind === 'shield') {
-              // Shield: push with long TTL — consumed on first bullet hit
               activeBuffsRef.current.push({ kind: 'shield', expiresAt: now + 30000 });
             } else {
               activeBuffsRef.current.push({ kind: drop.kind, expiresAt: now + POWERUP_DURATION });
             }
             continue;
           }
-
           if (drop.y > height + 40) drops.splice(i, 1);
         }
 
+        // Enemy shooting
         enemyShotTimerRef.current += delta;
         diveSpawnTimerRef.current += delta;
         const alive = invadersRef.current;
         const densityFactor = Math.max(0.64, alive.length / 88);
-        const shootInterval = Math.max(
-          110,
-          (820 - wave * 105 - Math.max(0, wave - 3) * 70) * densityFactor,
-        );
-        const diveInterval = Math.max(260, 1700 - wave * 170 - Math.max(0, wave - 4) * 100);
+        const shootInterval = Math.max(80, ((820 - wave * 105 - Math.max(0, wave - 3) * 70) * densityFactor) / endgamePressure);
+        const diveInterval = Math.max(180, (1700 - wave * 170 - Math.max(0, wave - 4) * 100) / endgamePressure);
 
         if (alive.length > 0 && enemyShotTimerRef.current >= shootInterval) {
           enemyShotTimerRef.current = 0;
-
-          const candidates = alive
-            .slice()
-            .sort((a, b) => a.x - b.x)
-            .filter((enemy, idx, arr) => {
-              const sameColumnFront = arr.some(other => Math.abs(other.x - enemy.x) < 12 && other.y > enemy.y);
-              return !sameColumnFront;
-            });
-
+          const candidates = alive.slice().sort((a, b) => a.x - b.x).filter((enemy, idx, arr) => {
+            return !arr.some(other => Math.abs(other.x - enemy.x) < 12 && other.y > enemy.y);
+          });
           const shooterPool = candidates.length > 0 ? candidates : alive;
           const shooter = shooterPool[Math.floor(Math.random() * shooterPool.length)];
-          enemyBulletsRef.current.push({
-            x: shooter.x + shooter.width / 2,
-            y: shooter.y + shooter.height,
-            vy: 5.3 + wave * 0.7 + Math.max(0, wave - 4) * 0.4,
-            radius: 4.5,
-          });
+          enemyBulletsRef.current.push({ x: shooter.x + shooter.width / 2, y: shooter.y + shooter.height, vy: (5.3 + wave * 0.7 + Math.max(0, wave - 4) * 0.4) * Math.min(1.6, 1 + Math.max(0, wave - 7) * 0.08), radius: 4.5 });
         }
 
         if (alive.length > 0 && diveSpawnTimerRef.current >= diveInterval) {
           diveSpawnTimerRef.current = 0;
           const diveCount = wave >= 6 ? 2 : 1;
-
-          for (let n = 0; n < diveCount; n += 1) {
+          for (let n = 0; n < diveCount; n++) {
             if (alive.length === 0) break;
             const shipCenter = ship.x + ship.width / 2;
-
-            let pickIndex = 0;
-            let bestDist = Number.POSITIVE_INFINITY;
-            for (let i = 0; i < alive.length; i += 1) {
+            let pickIndex = 0, bestDist = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < alive.length; i++) {
               const dist = Math.abs(alive[i].x + alive[i].width / 2 - shipCenter);
-              if (dist < bestDist) {
-                bestDist = dist;
-                pickIndex = i;
-              }
+              if (dist < bestDist) { bestDist = dist; pickIndex = i; }
             }
-
             const picked = alive.splice(pickIndex, 1)[0];
             const px = picked.x + picked.width / 2;
             const py = picked.y + picked.height;
-            const dx = shipCenter - px;
-
-            diveAttackersRef.current.push({
-              x: px,
-              y: py,
-              vx: clamp(dx * 0.012, -3.4, 3.4),
-              vy: 5.8 + wave * 0.8,
-              size: 14,
-              hp: Math.max(1, Math.ceil(picked.hp * 0.75)),
-              steer: 0.22 + wave * 0.03,
-            });
+            diveAttackersRef.current.push({ x: px, y: py, vx: clamp((shipCenter - px) * 0.012, -3.4, 3.4), vy: 5.8 + wave * 0.8, size: 14, hp: Math.max(1, Math.ceil(picked.hp * 0.75)), steer: 0.22 + wave * 0.03 });
           }
         }
 
+        // Enemy bullets
         const eBullets = enemyBulletsRef.current;
-        for (let i = eBullets.length - 1; i >= 0; i -= 1) {
+        for (let i = eBullets.length - 1; i >= 0; i--) {
           const shot = eBullets[i];
           const shotVx = (shot as EnemyBullet & { vx?: number }).vx ?? 0;
-          shot.x = (shot.x ?? 0) + shotVx * dt;
+          shot.x += shotVx * dt;
           shot.y += shot.vy * dt;
-
-          if (
-            shot.x > ship.x &&
-            shot.x < ship.x + ship.width &&
-            shot.y > ship.y &&
-            shot.y < ship.y + ship.height
-          ) {
+          if (shot.x > ship.x && shot.x < ship.x + ship.width && shot.y > ship.y && shot.y < ship.y + ship.height) {
             eBullets.splice(i, 1);
-            // Shield absorbs one bullet
             const shieldIdx = activeBuffsRef.current.findIndex(b => b.kind === 'shield');
             if (shieldIdx !== -1) {
               activeBuffsRef.current.splice(shieldIdx, 1);
+              spawnExplosion(ship.x + ship.width / 2, ship.y, 8, ['#8888ff', '#aaaaff', '#ffffff']);
               continue;
             }
-            finishInvaders('defeat');
-            return;
+            invaderLivesRef.current -= 1;
+            screenShakeRef.current = 16;
+            spawnExplosion(ship.x + ship.width / 2, ship.y + ship.height / 2, 14, ['#ff4444', '#ff8844', '#ffaa44']);
+            if (invaderLivesRef.current <= 0) { finishInvaders('defeat'); return; }
+            continue;
           }
-
           if (shot.y > height + 30) eBullets.splice(i, 1);
         }
 
+        // Dive attackers
         const divers = diveAttackersRef.current;
-        for (let d = divers.length - 1; d >= 0; d -= 1) {
+        for (let d = divers.length - 1; d >= 0; d--) {
           const diver = divers[d];
           const shipCenter = ship.x + ship.width / 2;
           diver.vx += clamp((shipCenter - diver.x) * 0.0032 * diver.steer, -0.22, 0.22) * dt;
           diver.vx = clamp(diver.vx, -8.4, 8.4);
           diver.vy = Math.min(diver.vy + 0.05 * dt, 10.5 + wave * 0.7);
-
           diver.x += diver.vx * dt;
           diver.y += diver.vy * dt;
 
-          for (let b = bullets.length - 1; b >= 0; b -= 1) {
+          for (let b = bullets.length - 1; b >= 0; b--) {
             const bullet = bullets[b];
-            if (
-              bullet.x > diver.x - diver.size &&
-              bullet.x < diver.x + diver.size &&
-              bullet.y > diver.y - diver.size &&
-              bullet.y < diver.y + diver.size
-            ) {
+            if (bullet.x > diver.x - diver.size && bullet.x < diver.x + diver.size && bullet.y > diver.y - diver.size && bullet.y < diver.y + diver.size) {
               diver.hp -= bullet.damage;
               bullets.splice(b, 1);
+              spawnExplosion(diver.x, diver.y, 5, ['#ff6644', '#ff4422']);
               if (diver.hp <= 0) {
-                divers.splice(d, 1);
                 invaderScoreRef.current += 180;
-                const diveEarn = 18 + wave * 5;
+                const diveEarn = 4 + wave * 2;
                 runCoinsRef.current += diveEarn;
-                setBankCoins(c => {
-                  const next = c + diveEarn;
-                  bankCoinsRef.current = next;
-                  return next;
-                });
+                setBankCoins(c => { const next = c + diveEarn; bankCoinsRef.current = next; return next; });
+                scorePopupsRef.current.push({ x: diver.x, y: diver.y, text: '+180', vy: -1.3, life: 800, color: '#ff8844' });
+                spawnExplosion(diver.x, diver.y, 14, ['#ff6644', '#ff4422', '#ffaa44', '#ff8800']);
+                divers.splice(d, 1);
                 break;
               }
             }
@@ -948,110 +1147,77 @@ export function PongGame() {
 
           if (!divers[d]) continue;
 
-          const hitShip =
-            diver.x > ship.x - diver.size &&
-            diver.x < ship.x + ship.width + diver.size &&
-            diver.y > ship.y - diver.size &&
-            diver.y < ship.y + ship.height + diver.size;
-
+          const hitShip = diver.x > ship.x - diver.size && diver.x < ship.x + ship.width + diver.size && diver.y > ship.y - diver.size && diver.y < ship.y + ship.height + diver.size;
           if (hitShip) {
+            invaderLivesRef.current -= 1;
+            screenShakeRef.current = 16;
+            spawnExplosion(diver.x, diver.y, 16, ['#ff4444', '#ff8800', '#ffaa44']);
             divers.splice(d, 1);
-            finishInvaders('defeat');
-            return;
+            if (invaderLivesRef.current <= 0) { finishInvaders('defeat'); return; }
+            continue;
           }
-
-          if (diver.y > height + 50 || diver.x < -60 || diver.x > width + 60) {
-            divers.splice(d, 1);
-          }
+          if (diver.y > height + 50 || diver.x < -60 || diver.x > width + 60) divers.splice(d, 1);
         }
 
-        ctx.save();
-        ctx.fillStyle = '#5ce8ff';
-        ctx.beginPath();
-        ctx.moveTo(ship.x + ship.width / 2, ship.y - 12);
-        ctx.lineTo(ship.x + ship.width, ship.y + ship.height);
-        ctx.lineTo(ship.x, ship.y + ship.height);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.fillRect(ship.x + ship.width / 2 - 5, ship.y + 4, 10, 9);
-        ctx.restore();
+        // ── Draw ──
 
-        for (let i = 0; i < bullets.length; i += 1) {
+        // Player ship
+        drawShip(ship.x, ship.y, ship.width, ship.height, hasShield);
+
+        // Player bullets
+        for (let i = 0; i < bullets.length; i++) {
           const bullet = bullets[i];
-          ctx.fillStyle = '#8ef9a8';
-          ctx.beginPath();
-          ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
-          ctx.fill();
+          const bColor = BULLET_COLORS[bullet.kind ?? 'machinegun'];
+          ctx.save();
+          ctx.fillStyle = bColor;
+          if (bullet.kind === 'bazooka') {
+            ctx.beginPath();
+            ctx.ellipse(bullet.x, bullet.y, bullet.radius, bullet.radius * 1.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (bullet.kind === 'machinegun') {
+            ctx.fillRect(bullet.x - 1.5, bullet.y - 5, 3, 8);
+          } else {
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
         }
 
-        for (let i = 0; i < eBullets.length; i += 1) {
+        // Enemy bullets
+        for (let i = 0; i < eBullets.length; i++) {
           const bullet = eBullets[i];
+          ctx.save();
           ctx.fillStyle = '#ff6e8c';
           ctx.beginPath();
           ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
 
-        const diversToDraw = diveAttackersRef.current;
-        for (let i = 0; i < diversToDraw.length; i += 1) {
-          const diver = diversToDraw[i];
+        // Dive attackers
+        for (let i = 0; i < divers.length; i++) {
+          const diver = divers[i];
+          ctx.save();
           ctx.fillStyle = '#ff4466';
           ctx.beginPath();
           ctx.moveTo(diver.x, diver.y + diver.size);
-          ctx.lineTo(diver.x + diver.size * 0.8, diver.y - diver.size);
-          ctx.lineTo(diver.x - diver.size * 0.8, diver.y - diver.size);
+          ctx.lineTo(diver.x + diver.size * 0.85, diver.y - diver.size);
+          ctx.lineTo(diver.x - diver.size * 0.85, diver.y - diver.size);
           ctx.closePath();
           ctx.fill();
+          ctx.restore();
         }
 
-        // Draw boss
+        // Boss
         const bossDrawn = bossRef.current;
-        if (bossDrawn) {
-          const bx = bossDrawn.x;
-          const by = bossDrawn.y;
-          const bw = bossDrawn.width;
-          const bh = bossDrawn.height;
-          const hpPct = bossDrawn.hp / bossDrawn.maxHp;
-          const isPhase2 = bossDrawn.phase === 2;
+        if (bossDrawn) drawBoss(bossDrawn, now);
 
-          ctx.fillStyle = isPhase2 ? '#ff2244' : '#cc2266';
-          ctx.fillRect(bx, by, bw, bh);
+        // Enemies
+        for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i], now, i);
 
-          // Eyes
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 22, by + 12, 16, 14);
-          ctx.fillRect(bx + bw - 38, by + 12, 16, 14);
-          ctx.fillStyle = '#111';
-          ctx.fillRect(bx + 28, by + 15, 8, 8);
-          ctx.fillRect(bx + bw - 32, by + 15, 8, 8);
-
-          // HP bar
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.fillRect(bx, by + bh + 6, bw, 7);
-          ctx.fillStyle = isPhase2 ? '#ff4422' : '#22ff88';
-          ctx.fillRect(bx, by + bh + 6, bw * hpPct, 7);
-
-          // Label
-          ctx.fillStyle = isPhase2 ? '#ff6688' : '#ff99aa';
-          ctx.font = `700 ${isPhase2 ? 13 : 11}px system-ui, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.fillText(isPhase2 ? '⚠ FINAL BOSS — PHASE 2' : 'FINAL BOSS', bx + bw / 2, by - 8);
-          ctx.textAlign = 'left';
-        }
-
-        for (let i = 0; i < enemies.length; i += 1) {
-          const enemy = enemies[i];
-          const tone = clamp(250 - enemy.hp * 22, 90, 250);
-          ctx.fillStyle = `rgb(${tone}, ${Math.max(80, tone - 70)}, 110)`;
-          ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
-          ctx.fillRect(enemy.x + 6, enemy.y + 6, 6, 6);
-          ctx.fillRect(enemy.x + enemy.width - 12, enemy.y + 6, 6, 6);
-        }
-
-        // Draw power-up drops
-        for (let i = 0; i < drops.length; i += 1) {
+        // Power-up drops
+        for (let i = 0; i < drops.length; i++) {
           const drop = drops[i];
           const col = POWERUP_COLORS[drop.kind];
           const pulse = 0.7 + 0.3 * Math.sin(now * 0.005 + i);
@@ -1071,17 +1237,102 @@ export function PongGame() {
           ctx.restore();
         }
 
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.font = '700 14px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Score ${invaderScoreRef.current}`, 22, 34);
-        ctx.fillText(`Wave ${invaderWaveRef.current}/8`, 22, 56);
-        ctx.fillText(`Lives ${invaderLivesRef.current}`, 22, 78);
-        ctx.fillStyle = hasShield ? '#8888ff' : '#79ffa1';
-        ctx.fillText(hasShield ? `Coins +${runCoinsRef.current}  🛡 SHIELDED` : `Coins +${runCoinsRef.current}`, 22, 100);
-        ctx.fillStyle = '#ff6f86';
-        ctx.fillText(`Divers ${diveAttackersRef.current.length}`, 22, 122);
+        // Particles
+        const parts = particlesRef.current;
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const p = parts[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          p.life -= delta;
+          if (p.life <= 0) { parts.splice(i, 1); continue; }
+          const alpha = p.life / p.maxLife;
+          // Special case: large r = shockwave ring
+          if (p.r > 20) {
+            ctx.save();
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = alpha * 0.7;
+            const ringR = p.r * (1 - alpha);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          } else {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r * alpha + 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
 
+        // Electric arcs
+        const arcs = electricArcsRef.current;
+        for (let i = arcs.length - 1; i >= 0; i--) {
+          const arc = arcs[i];
+          arc.life -= delta;
+          if (arc.life <= 0) { arcs.splice(i, 1); continue; }
+          const alpha = arc.life / 380;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = '#b060ff';
+          ctx.lineWidth = 2;
+          drawLightning(ctx, arc.x1, arc.y1, arc.x2, arc.y2, 7);
+          ctx.strokeStyle = 'rgba(200,180,255,0.8)';
+          ctx.lineWidth = 1;
+          drawLightning(ctx, arc.x1, arc.y1, arc.x2, arc.y2, 7);
+          ctx.restore();
+        }
+
+        // Score popups
+        const popups = scorePopupsRef.current;
+        for (let i = popups.length - 1; i >= 0; i--) {
+          const p = popups[i];
+          p.y += p.vy * dt;
+          p.life -= delta;
+          if (p.life <= 0) { popups.splice(i, 1); continue; }
+          const alpha = Math.min(1, p.life / 400);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.color;
+          ctx.font = 'bold 14px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
+          ctx.restore();
+        }
+
+        // HUD
+        ctx.save();
+
+        // Score / wave / lives panel (top-left)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.roundRect(12, 12, 190, 90, 10);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = '700 13px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Score  ${invaderScoreRef.current}`, 22, 34);
+        ctx.fillText(`Wave   ${invaderWaveRef.current}/${INVADER_TOTAL_WAVES}`, 22, 54);
+        ctx.fillStyle = '#ff6f86';
+        // Lives as hearts
+        let livesStr = '';
+        for (let l = 0; l < invaderLivesRef.current; l++) livesStr += '♥ ';
+        ctx.fillText(livesStr, 22, 74);
+        ctx.fillStyle = hasShield ? '#8888ff' : '#79ffa1';
+        ctx.fillText(`Coins  +${runCoinsRef.current}`, 22, 94);
+
+        // Controls hint
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.font = '500 10px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('A/D: Move  SPACE: Fire  B: Store  P: Exit', width - 14, height - 12);
+
+        // Wave notice
         if (now < invaderWaveNoticeUntilRef.current) {
           const remainingMs = invaderWaveNoticeUntilRef.current - now;
           const fade = Math.min(1, remainingMs / 450);
@@ -1089,35 +1340,31 @@ export function PongGame() {
           ctx.globalAlpha = fade;
           ctx.textAlign = 'center';
           ctx.fillStyle = 'rgba(255,255,255,0.96)';
-          ctx.font = '900 52px system-ui, sans-serif';
+          ctx.font = '900 56px system-ui, sans-serif';
           ctx.fillText(`WAVE ${invaderWaveRef.current}`, width / 2, height / 2 - 8);
           ctx.fillStyle = 'rgba(130,245,255,0.9)';
-          ctx.font = '700 18px system-ui, sans-serif';
-          ctx.fillText('INCOMING', width / 2, height / 2 + 26);
+          ctx.font = '700 20px system-ui, sans-serif';
+          ctx.fillText('INCOMING', width / 2, height / 2 + 30);
           ctx.restore();
-          ctx.textAlign = 'left';
         }
 
-        // Active buff icons (top-right)
+        // Active buffs (top-right)
         if (buffsNow.length > 0) {
           ctx.font = 'bold 12px system-ui, sans-serif';
           ctx.textAlign = 'right';
           let bY = 36;
-          for (let i = 0; i < buffsNow.length; i += 1) {
+          for (let i = 0; i < buffsNow.length; i++) {
             const buff = buffsNow[i];
             const remaining = Math.max(0, (buff.expiresAt - now) / 1000);
             ctx.fillStyle = POWERUP_COLORS[buff.kind];
-            const label = buff.kind === 'shield' ? `${POWERUP_LABELS[buff.kind]} SHIELD` :
-              `${POWERUP_LABELS[buff.kind]} ${buff.kind.toUpperCase()} ${remaining.toFixed(1)}s`;
+            const label = buff.kind === 'shield' ? `${POWERUP_LABELS[buff.kind]} SHIELD` : `${POWERUP_LABELS[buff.kind]} ${buff.kind.toUpperCase()} ${remaining.toFixed(1)}s`;
             ctx.fillText(label, width - 22, bY);
-            bY += 20;
+            bY += 22;
           }
-          ctx.textAlign = 'left';
         }
 
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.textAlign = 'right';
-        ctx.fillText('Move: A/D or <- ->  Fire: Hold SPACE  Store: B  Exit: P', width - 22, height - 18);
+        ctx.restore();
+        ctx.restore(); // screen shake
 
         requestRef.current = requestAnimationFrame(loopInvaders);
       };
@@ -1133,6 +1380,7 @@ export function PongGame() {
       };
     }
 
+    // ── Pong ──
     const img = new window.Image();
     img.src = '/profile.jpg';
 
@@ -1144,20 +1392,15 @@ export function PongGame() {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
       if (is2P) {
-        // Vertical paddles on left/right sides
-        playerRef.current.width  = 12;
-        playerRef.current.height = 100;
-        cpuRef.current.width     = 12;
-        cpuRef.current.height    = 100;
+        playerRef.current.width  = 12; playerRef.current.height = 100;
+        cpuRef.current.width     = 12; cpuRef.current.height    = 100;
         playerRef.current.x = 40;
         playerRef.current.y = canvas.height / 2 - 50;
         cpuRef.current.x    = canvas.width - 52;
         cpuRef.current.y    = canvas.height / 2 - 50;
       } else {
-        playerRef.current.width  = 120;
-        playerRef.current.height = 12;
-        cpuRef.current.width     = 120;
-        cpuRef.current.height    = 12;
+        playerRef.current.width  = 120; playerRef.current.height = 12;
+        cpuRef.current.width     = 120; cpuRef.current.height    = 12;
         playerRef.current.y = canvas.height - 60;
         cpuRef.current.y    = 48;
         mouseRef.current    = canvas.width / 2;
@@ -1172,48 +1415,29 @@ export function PongGame() {
     }
 
     hitCountRef.current = 0;
-
     const ball = ballRef.current;
-    ball.x  = canvas.width / 2;
-    ball.y  = canvas.height / 2;
-    ball.dx = 0;
-    ball.dy = 0;
+    ball.x = canvas.width / 2; ball.y = canvas.height / 2; ball.dx = 0; ball.dy = 0;
 
     const initSpd = is2P ? 12 : settings.ballSpeed;
     if (is2P) {
-      // ±20° from horizontal so ball heads toward a paddle, not the corners
       const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
-      countdownRef.current = {
-        active: true,
-        start:  performance.now(),
-        pendingDx: initSpd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
-        pendingDy: initSpd * Math.sin(angle),
-      };
+      countdownRef.current = { active: true, start: performance.now(), pendingDx: initSpd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1), pendingDy: initSpd * Math.sin(angle) };
     } else {
-      // ±25° from vertical so ball heads toward a paddle, not the corners
       const angle = (Math.random() - 0.5) * (Math.PI / 3.6);
-      countdownRef.current = {
-        active: true,
-        start:  performance.now(),
-        pendingDx: initSpd * Math.sin(angle),
-        pendingDy: initSpd * Math.cos(angle),
-      };
+      countdownRef.current = { active: true, start: performance.now(), pendingDx: initSpd * Math.sin(angle), pendingDy: initSpd * Math.cos(angle) };
     }
 
     const handleMouse = (e: MouseEvent) => {
       if (modeRef.current === '2player') return;
-      mouseRef.current   = e.clientX;
+      mouseRef.current = e.clientX;
       inputModeRef.current = 'mouse';
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Solo mode — horizontal movement
       if (e.key === 'ArrowLeft')           { keysRef.current.left  = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
       if (e.key === 'ArrowRight')          { keysRef.current.right = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
-      // 2P P1 — W/S vertical
       if (e.key === 'w' || e.key === 'W') { keysRef.current.up    = true; e.preventDefault(); }
       if (e.key === 's' || e.key === 'S') { keysRef.current.down  = true; e.preventDefault(); }
-      // 2P P2 — arrow up/down vertical
       if (e.key === 'ArrowUp')             { keys2Ref.current.up   = true; e.preventDefault(); }
       if (e.key === 'ArrowDown')           { keys2Ref.current.down = true; e.preventDefault(); }
     };
@@ -1228,12 +1452,9 @@ export function PongGame() {
     };
 
     const handleBlur = () => {
-      keysRef.current.left  = false;
-      keysRef.current.right = false;
-      keysRef.current.up    = false;
-      keysRef.current.down  = false;
-      keys2Ref.current.up   = false;
-      keys2Ref.current.down = false;
+      keysRef.current.left = false; keysRef.current.right = false;
+      keysRef.current.up   = false; keysRef.current.down  = false;
+      keys2Ref.current.up  = false; keys2Ref.current.down = false;
     };
 
     window.addEventListener('mousemove', handleMouse);
@@ -1243,80 +1464,51 @@ export function PongGame() {
 
     const resetBall = () => {
       hitCountRef.current = 0;
-      ball.x  = canvas.width  / 2;
-      ball.y  = canvas.height / 2;
-      ball.dx = 0;
-      ball.dy = 0;
+      ball.x = canvas.width / 2; ball.y = canvas.height / 2; ball.dx = 0; ball.dy = 0;
       const spd = modeRef.current === '2player' ? 12 : settings.ballSpeed;
       if (modeRef.current === '2player') {
         const angle = (Math.random() - 0.5) * (Math.PI / 4.5);
-        countdownRef.current = {
-          active: true,
-          start:  performance.now(),
-          pendingDx: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
-          pendingDy: spd * Math.sin(angle),
-        };
+        countdownRef.current = { active: true, start: performance.now(), pendingDx: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1), pendingDy: spd * Math.sin(angle) };
       } else {
         const angle = (Math.random() - 0.5) * (Math.PI / 3.6);
-        countdownRef.current = {
-          active: true,
-          start:  performance.now(),
-          pendingDx: spd * Math.sin(angle),
-          pendingDy: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1),
-        };
+        countdownRef.current = { active: true, start: performance.now(), pendingDx: spd * Math.sin(angle), pendingDy: spd * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1) };
       }
     };
 
-    const checkPaddleCollision = (
-      px: number, py: number, pw: number, ph: number, goingToward: boolean
-    ): boolean => {
+    const checkPaddleCollision = (px: number, py: number, pw: number, ph: number, goingToward: boolean): boolean => {
       if (!goingToward) return false;
-      const ballR    = ball.size / 2;
+      const ballR = ball.size / 2;
       const closestX = Math.max(px, Math.min(ball.x, px + pw));
       const closestY = Math.max(py, Math.min(ball.y, py + ph));
-      const distX    = ball.x - closestX;
-      const distY    = ball.y - closestY;
+      const distX = ball.x - closestX, distY = ball.y - closestY;
       return (distX * distX + distY * distY) <= (ballR * ballR);
     };
 
     const loop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       const player = playerRef.current;
       const cpu    = cpuRef.current;
       const cd     = countdownRef.current;
 
-      // Resolve countdown — apply velocity when time expires
       if (cd.active) {
         const elapsed = (performance.now() - cd.start) / 1000;
-        if (elapsed >= COUNTDOWN_SECS) {
-          ball.dx  = cd.pendingDx;
-          ball.dy  = cd.pendingDy;
-          cd.active = false;
-        }
+        if (elapsed >= COUNTDOWN_SECS) { ball.dx = cd.pendingDx; ball.dy = cd.pendingDy; cd.active = false; }
       }
 
       const pSpd = modeRef.current === '2player' ? 20 : settings.playerSpeed;
 
       if (modeRef.current === '2player') {
-        // P1 (left paddle) — W/S keys, vertical movement
         if (keysRef.current.up)        player.y -= pSpd;
         else if (keysRef.current.down) player.y += pSpd;
         player.y = Math.max(0, Math.min(player.y, canvas.height - player.height));
-
-        // P2 (right paddle) — arrow up/down, vertical movement
         if (keys2Ref.current.up)        cpu.y -= pSpd;
         else if (keys2Ref.current.down) cpu.y += pSpd;
         cpu.y = Math.max(0, Math.min(cpu.y, canvas.height - cpu.height));
       } else {
-        // P1 (bottom paddle) — arrows or mouse, horizontal movement
         if (keysRef.current.left)       player.x -= pSpd;
         else if (keysRef.current.right) player.x += pSpd;
-        else if (inputModeRef.current === 'mouse')
-          player.x += (mouseRef.current - player.width / 2 - player.x) * settings.playerLerp;
+        else if (inputModeRef.current === 'mouse') player.x += (mouseRef.current - player.width / 2 - player.x) * settings.playerLerp;
         player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
-
-        // CPU AI (top paddle)
         const cpuCenter = cpu.x + cpu.width / 2;
         if (difficulty === 'impossible') {
           const dynCpuSpeed = settings.cpuSpeed + hitCountRef.current * 0.5;
@@ -1334,219 +1526,127 @@ export function PongGame() {
         cpu.x = Math.max(0, Math.min(cpu.x, canvas.width - cpu.width));
       }
 
-      // Ball movement
-      ball.x += ball.dx;
-      ball.y += ball.dy;
-
+      ball.x += ball.dx; ball.y += ball.dy;
       const curSpeedGain = modeRef.current === '2player' ? 0.9 : settings.speedGain;
       const curMaxSpeed  = modeRef.current === '2player' ? 40  : settings.maxSpeed;
 
       if (modeRef.current === '2player') {
-        // Top/bottom walls bounce
-        if (ball.y < ball.size / 2)                  { ball.dy = Math.abs(ball.dy);  ball.y = ball.size / 2; }
-        if (ball.y > canvas.height - ball.size / 2)  { ball.dy = -Math.abs(ball.dy); ball.y = canvas.height - ball.size / 2; }
-
-        // Left paddle (P1) collision — ball moving left
+        if (ball.y < ball.size / 2)                 { ball.dy =  Math.abs(ball.dy); ball.y = ball.size / 2; }
+        if (ball.y > canvas.height - ball.size / 2) { ball.dy = -Math.abs(ball.dy); ball.y = canvas.height - ball.size / 2; }
         if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dx < 0)) {
           const hitPoint = (ball.y - (player.y + player.height / 2)) / (player.height / 2);
-          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-          speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          const speed = Math.min(Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + curSpeedGain, curMaxSpeed);
           const angle = hitPoint * (Math.PI / 3);
-          ball.dx = Math.cos(angle) * speed;
-          ball.dy = Math.sin(angle) * speed;
-          ball.x  = player.x + player.width + ball.size / 2;
+          ball.dx = Math.cos(angle) * speed; ball.dy = Math.sin(angle) * speed;
+          ball.x = player.x + player.width + ball.size / 2;
         }
-
-        // Right paddle (P2) collision — ball moving right
         if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dx > 0)) {
           const hitPoint = (ball.y - (cpu.y + cpu.height / 2)) / (cpu.height / 2);
-          let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-          speed = Math.min(speed + curSpeedGain, curMaxSpeed);
+          const speed = Math.min(Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) + curSpeedGain, curMaxSpeed);
           const angle = hitPoint * (Math.PI / 3);
-          ball.dx = -Math.cos(angle) * speed;
-          ball.dy = Math.sin(angle) * speed;
-          ball.x  = cpu.x - ball.size / 2;
+          ball.dx = -Math.cos(angle) * speed; ball.dy = Math.sin(angle) * speed;
+          ball.x = cpu.x - ball.size / 2;
         }
-
-        // Scoring — ball exits left (P2 scores) or right (P1 scores)
-        if (ball.x > canvas.width + ball.size) {
-          playerScoreRef.current += 1;
-          if (playerScoreRef.current >= WIN_SCORE) { finishPong('player'); return; }
-          resetBall();
-        }
-        if (ball.x < -ball.size) {
-          cpuScoreRef.current += 1;
-          if (cpuScoreRef.current >= WIN_SCORE) { finishPong('cpu'); return; }
-          resetBall();
-        }
+        if (ball.x > canvas.width + ball.size)  { playerScoreRef.current += 1; if (playerScoreRef.current >= WIN_SCORE) { finishPong('player'); return; } resetBall(); }
+        if (ball.x < -ball.size)                 { cpuScoreRef.current += 1;    if (cpuScoreRef.current >= WIN_SCORE)    { finishPong('cpu');    return; } resetBall(); }
       } else {
-        // Left/right walls bounce (solo mode)
-        if (ball.x < ball.size / 2)                  { ball.dx = Math.abs(ball.dx);  ball.x = ball.size / 2; }
+        if (ball.x < ball.size / 2)                  { ball.dx =  Math.abs(ball.dx); ball.x = ball.size / 2; }
         if (ball.x > canvas.width - ball.size / 2)   { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.size / 2; }
-
-        // P1 paddle collision (bottom)
         if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dy > 0)) {
           const hitPoint = (ball.x - (player.x + player.width / 2)) / (player.width / 2);
           let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-          if (difficulty === 'impossible') {
-            const rampGain = curSpeedGain + hitCountRef.current * 0.25;
-            const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
-            speed = Math.min(speed + rampGain, rampMax);
-            hitCountRef.current += 1;
-          } else {
-            speed = Math.min(speed + curSpeedGain, curMaxSpeed);
-          }
+          if (difficulty === 'impossible') { const rG = curSpeedGain + hitCountRef.current * 0.25; const rM = curMaxSpeed + hitCountRef.current * 3; speed = Math.min(speed + rG, rM); hitCountRef.current++; } else { speed = Math.min(speed + curSpeedGain, curMaxSpeed); }
           const angle = hitPoint * (Math.PI / 3);
-          ball.dx = Math.sin(angle) * speed;
-          ball.dy = -Math.cos(angle) * speed;
-          ball.y  = player.y - ball.size / 2;
+          ball.dx = Math.sin(angle) * speed; ball.dy = -Math.cos(angle) * speed;
+          ball.y = player.y - ball.size / 2;
         }
-
-        // Top paddle collision (CPU)
         if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dy < 0)) {
           const hitPoint = (ball.x - (cpu.x + cpu.width / 2)) / (cpu.width / 2);
           let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-          if (difficulty === 'impossible') {
-            const rampGain = curSpeedGain + hitCountRef.current * 0.25;
-            const rampMax  = curMaxSpeed  + hitCountRef.current * 3;
-            speed = Math.min(speed + rampGain, rampMax);
-            hitCountRef.current += 1;
-          } else {
-            speed = Math.min(speed + curSpeedGain, curMaxSpeed);
-          }
+          if (difficulty === 'impossible') { const rG = curSpeedGain + hitCountRef.current * 0.25; const rM = curMaxSpeed + hitCountRef.current * 3; speed = Math.min(speed + rG, rM); hitCountRef.current++; } else { speed = Math.min(speed + curSpeedGain, curMaxSpeed); }
           const angle = hitPoint * (Math.PI / 3);
-          ball.dx = Math.sin(angle) * speed;
-          ball.dy = Math.cos(angle) * speed;
-          ball.y  = cpu.y + cpu.height + ball.size / 2;
+          ball.dx = Math.sin(angle) * speed; ball.dy = Math.cos(angle) * speed;
+          ball.y = cpu.y + cpu.height + ball.size / 2;
         }
-
-        // Scoring — ball exits bottom (CPU scores) or top (player scores)
-        if (ball.y > canvas.height + ball.size) {
-          cpuScoreRef.current += 1;
-          if (cpuScoreRef.current >= WIN_SCORE) { finishPong('cpu'); return; }
-          resetBall();
-        }
-        if (ball.y < -ball.size) {
-          playerScoreRef.current += 1;
-          if (playerScoreRef.current >= WIN_SCORE) { finishPong('player'); return; }
-          resetBall();
-        }
+        if (ball.y > canvas.height + ball.size) { cpuScoreRef.current += 1;    if (cpuScoreRef.current >= WIN_SCORE)    { finishPong('cpu');    return; } resetBall(); }
+        if (ball.y < -ball.size)                 { playerScoreRef.current += 1; if (playerScoreRef.current >= WIN_SCORE) { finishPong('player'); return; } resetBall(); }
       }
 
-      // ── Draw ──
-
-      // Center line — vertical for 2P, horizontal for solo
       ctx.setLineDash([8, 12]);
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth   = 2;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      if (modeRef.current === '2player') {
-        ctx.moveTo(canvas.width / 2, 0);
-        ctx.lineTo(canvas.width / 2, canvas.height);
-      } else {
-        ctx.moveTo(0, canvas.height / 2);
-        ctx.lineTo(canvas.width, canvas.height / 2);
-      }
+      if (modeRef.current === '2player') { ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height); }
+      else { ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); }
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Ball
       ctx.save();
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.size / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      if (img.complete) {
-        ctx.drawImage(img, ball.x - ball.size / 2, ball.y - ball.size / 2, ball.size, ball.size);
-      } else {
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-      }
+      if (img.complete) ctx.drawImage(img, ball.x - ball.size / 2, ball.y - ball.size / 2, ball.size, ball.size);
+      else { ctx.fillStyle = '#fff'; ctx.fill(); }
       ctx.restore();
 
-      // P1 paddle
       ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.roundRect(player.x, player.y, player.width, player.height, 6);
-      ctx.fill();
-
-      // P2 / CPU paddle
+      ctx.beginPath(); ctx.roundRect(player.x, player.y, player.width, player.height, 6); ctx.fill();
       ctx.fillStyle = modeRef.current === '2player' ? '#fff' : 'rgba(255,255,255,0.6)';
-      ctx.beginPath();
-      ctx.roundRect(cpu.x, cpu.y, cpu.width, cpu.height, 6);
-      ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cpu.x, cpu.y, cpu.width, cpu.height, 6); ctx.fill();
 
-      // Scores
-      ctx.fillStyle    = 'rgba(255,255,255,0.2)';
-      ctx.font         = '700 80px system-ui, sans-serif';
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.font = '700 80px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
       if (modeRef.current === '2player') {
-        // P1 score left half, P2 score right half
-        ctx.fillText(`${playerScoreRef.current}`, canvas.width / 4,     canvas.height / 2 + 40);
-        ctx.fillText(`${cpuScoreRef.current}`,    canvas.width * 3 / 4, canvas.height / 2 + 40);
+        ctx.fillText(`${playerScoreRef.current}`, canvas.width / 4, canvas.height / 2 + 40);
+        ctx.fillText(`${cpuScoreRef.current}`, canvas.width * 3 / 4, canvas.height / 2 + 40);
       } else {
-        ctx.fillText(`${cpuScoreRef.current}`,    canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText(`${cpuScoreRef.current}`, canvas.width / 2, canvas.height / 2 - 30);
         ctx.fillText(`${playerScoreRef.current}`, canvas.width / 2, canvas.height / 2 + 90);
       }
 
-      // 2P control hints — shown near each paddle
       if (modeRef.current === '2player') {
-        ctx.fillStyle    = 'rgba(255,255,255,0.22)';
-        ctx.font         = '500 11px system-ui, sans-serif';
-        ctx.textBaseline = 'alphabetic';
-        ctx.textAlign    = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.font = '500 11px system-ui, sans-serif';
+        ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
         ctx.fillText('P1  ·  W / S', player.x + player.width + 10, canvas.height / 2);
-        ctx.textAlign    = 'right';
+        ctx.textAlign = 'right';
         ctx.fillText('P2  ·  ↑ / ↓', cpu.x - 10, canvas.height / 2);
       }
 
-      // Countdown overlay
       if (cd.active) {
         const elapsed = (performance.now() - cd.start) / 1000;
-        const num     = COUNTDOWN_SECS - Math.floor(elapsed);
-        const pulse   = 1 - (elapsed % 1);
+        const num = COUNTDOWN_SECS - Math.floor(elapsed);
+        const pulse = 1 - (elapsed % 1);
         ctx.save();
-        ctx.font         = '700 100px system-ui, sans-serif';
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle    = `rgba(255,255,255,${0.2 + 0.5 * pulse})`;
-        const countdownY = canvas.height * 0.2;
-        ctx.fillText(String(num), canvas.width / 2, countdownY);
+        ctx.font = '700 100px system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255,255,255,${0.2 + 0.5 * pulse})`;
+        ctx.fillText(String(num), canvas.width / 2, canvas.height * 0.2);
         ctx.restore();
       }
 
-      // Impossible rally counter
       if (difficulty === 'impossible' && hitCountRef.current > 0) {
         const heat = Math.min(hitCountRef.current / 10, 1);
-        const r = Math.round(239);
-        const g = Math.round(68  * (1 - heat));
-        const b = Math.round(68  * (1 - heat));
         ctx.save();
-        ctx.font         = `700 ${13 + hitCountRef.current}px system-ui, sans-serif`;
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle    = `rgba(${r},${g},${b},${0.4 + 0.4 * heat})`;
+        ctx.font = `700 ${13 + hitCountRef.current}px system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = `rgba(239,${Math.round(68 * (1 - heat))},${Math.round(68 * (1 - heat))},${0.4 + 0.4 * heat})`;
         ctx.fillText(`× ${hitCountRef.current}`, canvas.width / 2, canvas.height * 0.25 + 60);
         ctx.restore();
       }
 
-      // Mode / difficulty label (bottom-left)
-      ctx.fillStyle    = difficulty === 'impossible' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.2)';
-      ctx.font         = '600 11px system-ui, sans-serif';
-      ctx.textAlign    = 'left';
-      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = difficulty === 'impossible' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.2)';
+      ctx.font = '600 11px system-ui, sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
       ctx.fillText(modeRef.current === '2player' ? '2P' : difficulty.toUpperCase(), 20, canvas.height - 16);
-
-      // Exit hint
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font      = '500 11px system-ui, sans-serif';
+      ctx.font = '500 11px system-ui, sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText("'P' to exit", canvas.width - 20, canvas.height - 16);
-
-      // Win target
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.font      = '500 11px system-ui, sans-serif';
+      ctx.font = '500 11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(`First to ${WIN_SCORE}`, canvas.width / 2, canvas.height - 16);
 
@@ -1574,20 +1674,10 @@ export function PongGame() {
       {gameState === 'menu' && (
         <div className="flex flex-col items-center gap-8 w-full px-4">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setArcadeGame('pong')}
-              className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${
-                arcadeGame === 'pong' ? 'border-white text-white bg-white/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
-              }`}
-            >
+            <button onClick={() => setArcadeGame('pong')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pong' ? 'border-white text-white bg-white/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Pong
             </button>
-            <button
-              onClick={() => setArcadeGame('invaders')}
-              className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${
-                arcadeGame === 'invaders' ? 'border-emerald-300 text-emerald-300 bg-emerald-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
-              }`}
-            >
+            <button onClick={() => setArcadeGame('invaders')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'invaders' ? 'border-emerald-300 text-emerald-300 bg-emerald-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Space Invaders
             </button>
           </div>
@@ -1595,41 +1685,21 @@ export function PongGame() {
           {arcadeGame === 'pong' && (
             <>
               <h2 className="text-white text-4xl font-black tracking-[0.2em] uppercase">Pong</h2>
-
               <div className="flex flex-col items-center gap-4">
                 <p className="text-zinc-500 text-xs tracking-widest uppercase">VS CPU</p>
                 <div className="flex gap-4 flex-wrap justify-center">
                   {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => startGame(d)}
-                      className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                    >
-                      {d}
-                    </button>
+                    <button key={d} onClick={() => startGame(d)} className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">{d}</button>
                   ))}
-                  <button
-                    onClick={() => startGame('impossible')}
-                    className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-red-900 bg-transparent text-red-500 font-bold text-sm uppercase tracking-[0.15em] hover:border-red-500 hover:bg-red-500/10 transition-all duration-200 cursor-pointer"
-                  >
-                    impossible
-                  </button>
+                  <button onClick={() => startGame('impossible')} className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-red-900 bg-transparent text-red-500 font-bold text-sm uppercase tracking-[0.15em] hover:border-red-500 hover:bg-red-500/10 transition-all duration-200">impossible</button>
                 </div>
               </div>
-
               <div className="w-64 border-t border-zinc-800" />
-
               <div className="flex flex-col items-center gap-4">
                 <p className="text-zinc-500 text-xs tracking-widest uppercase">Local Multiplayer</p>
-                <button
-                  onClick={startTwoPlayer}
-                  className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                >
-                  2 Player
-                </button>
+                <button onClick={startTwoPlayer} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">2 Player</button>
                 <p className="text-zinc-600 text-xs tracking-widest">P1: W / S  ·  P2: ↑ / ↓</p>
               </div>
-
               <p className="text-zinc-600 text-xs tracking-widest">First to {WIN_SCORE} wins · Press P to close</p>
             </>
           )}
@@ -1637,21 +1707,15 @@ export function PongGame() {
           {arcadeGame === 'invaders' && (
             <div className="flex flex-col items-center gap-5">
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.14em] text-emerald-300">Space Invaders</h2>
-              <p className="text-zinc-400 text-sm tracking-wide text-center max-w-xl">
-                Hold space to unleash rapid plasma fire, dodge incoming shots, and clear 8 escalating waves.
-                Press B during gameplay to open the store without leaving the run.
+              <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
+                Clear 12 waves. Earn rare coins. Upgrade your ship.
               </p>
+
               <div className="flex gap-4">
-                <button
-                  onClick={startInvaders}
-                  className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-emerald-300/70 bg-emerald-300/10 text-emerald-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-300/20 transition-all duration-200"
-                >
+                <button onClick={startInvaders} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-emerald-300/70 bg-emerald-300/10 text-emerald-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-300/20 transition-all duration-200">
                   Launch Mission
                 </button>
-                <button
-                  onClick={() => setStoreOpen(prev => !prev)}
-                  className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
-                >
+                <button onClick={() => setStoreOpen(prev => !prev)} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">
                   {storeOpen ? 'Hide Store' : 'Open Store'}
                 </button>
               </div>
@@ -1666,6 +1730,7 @@ export function PongGame() {
       {gameState === 'playing' && (
         <>
           <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full cursor-none" />
+
           {arcadeGame === 'invaders' && storeOpen && (
             <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/35">
               {drawInvaderStore()}
@@ -1675,53 +1740,48 @@ export function PongGame() {
       )}
 
       {/* Game Over */}
-      {gameState === 'gameover' && (
+      {gameState === 'gameover' && !storeOpen && (
         <div className="flex flex-col items-center gap-6">
           <h2 className="text-white text-5xl font-black tracking-[0.15em] uppercase">
             {arcadeGame === 'pong'
-              ? (mode === '2player'
-                ? (winner === 'player' ? 'Player 1 Wins!' : 'Player 2 Wins!')
-                : (winner === 'player' ? 'You Win!' : 'CPU Wins'))
+              ? (mode === '2player' ? (winner === 'player' ? 'Player 1 Wins!' : 'Player 2 Wins!') : (winner === 'player' ? 'You Win!' : 'CPU Wins'))
               : (invaderOutcome === 'victory' ? 'Sector Cleared!' : 'Ship Destroyed')}
           </h2>
           {arcadeGame === 'pong' ? (
-            <p className="text-zinc-500 text-sm tracking-widest">
-              {pongFinalScore.player} — {pongFinalScore.cpu}
-            </p>
+            <p className="text-zinc-500 text-sm tracking-widest">{pongFinalScore.player} - {pongFinalScore.cpu}</p>
           ) : (
-            <p className="text-zinc-500 text-sm tracking-widest">
-              Score {invaderFinalStats.score} · Wave {invaderFinalStats.wave} · Coins +{invaderFinalStats.coins}
-            </p>
+            <p className="text-zinc-500 text-sm tracking-widest">Score {invaderFinalStats.score} · Wave {invaderFinalStats.wave} · Coins +{invaderFinalStats.coins}</p>
           )}
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-4 mt-4 flex-wrap justify-center">
             <button
-              onClick={() => arcadeGame === 'pong'
-                ? (mode === '2player' ? startTwoPlayer() : startGame(difficulty))
-                : startInvaders()}
-              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+              onClick={() => arcadeGame === 'pong' ? (mode === '2player' ? startTwoPlayer() : startGame(difficulty)) : startInvaders()}
+              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
             >
               {arcadeGame === 'pong' ? 'Rematch' : 'Retry'}
             </button>
             <button
-              onClick={() => {
-                setGameState('menu');
-                setWinner(null);
-                setInvaderOutcome(null);
-              }}
-              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+              onClick={() => { setGameState('menu'); setWinner(null); setInvaderOutcome(null); }}
+              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
             >
               Menu
             </button>
             {arcadeGame === 'invaders' && (
               <button
                 onClick={() => setStoreOpen(true)}
-                className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-emerald-700 bg-transparent text-emerald-300 font-bold text-sm uppercase tracking-[0.15em] hover:border-emerald-300 hover:bg-emerald-300/10 transition-all duration-200 cursor-pointer"
+                className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-emerald-700 bg-transparent text-emerald-300 font-bold text-sm uppercase tracking-[0.15em] hover:border-emerald-300 hover:bg-emerald-300/10 transition-all duration-200"
               >
                 Store
               </button>
             )}
           </div>
           <p className="text-zinc-600 text-xs tracking-widest mt-2">Press P to close</p>
+        </div>
+      )}
+
+      {/* Store overlay on game over */}
+      {gameState === 'gameover' && storeOpen && arcadeGame === 'invaders' && (
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          {drawInvaderStore()}
         </div>
       )}
 
