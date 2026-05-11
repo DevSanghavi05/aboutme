@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { PacManGame } from "@/components/PacManGame";
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
-type ArcadeGame = 'pong' | 'invaders' | 'pacman';
+type ArcadeGame = 'pong' | 'invaders';
 type InvaderOutcome = 'victory' | 'defeat' | null;
 type BulletType = 'machinegun' | 'bazooka' | 'electric';
 
@@ -322,12 +321,6 @@ export function PongGame() {
     screenShakeRef.current = 0;
   }, []);
 
-  const startPacman = useCallback(() => {
-    setArcadeGame('pacman');
-    setStoreOpen(false);
-    setGameState('playing');
-  }, []);
-
   const toggleFullscreen = useCallback(async () => {
     try {
       if (document.fullscreenElement) {
@@ -514,7 +507,7 @@ export function PongGame() {
 
   // ── Game loop ──
   useEffect(() => {
-    if (!isOpen || gameState !== 'playing' || arcadeGame === 'pacman') {
+    if (!isOpen || gameState !== 'playing') {
       document.body.style.overflow = isOpen ? 'hidden' : '';
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       return;
@@ -1716,15 +1709,12 @@ export function PongGame() {
       {/* Menu */}
       {gameState === 'menu' && (
         <div className="flex flex-col items-center gap-8 w-full px-4">
-          <div className="flex items-center gap-3 flex-wrap justify-center">
+          <div className="flex items-center gap-3">
             <button onClick={() => setArcadeGame('pong')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pong' ? 'border-white text-white bg-white/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Pong
             </button>
             <button onClick={() => setArcadeGame('invaders')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'invaders' ? 'border-emerald-300 text-emerald-300 bg-emerald-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Space Invaders
-            </button>
-            <button onClick={() => setArcadeGame('pacman')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pacman' ? 'border-yellow-300 text-yellow-300 bg-yellow-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
-              Pac-Man
             </button>
           </div>
 
@@ -1768,30 +1758,14 @@ export function PongGame() {
               <p className="text-zinc-600 text-xs tracking-widest">Coins: {bankCoins} · Press P to close</p>
             </div>
           )}
-
-          {arcadeGame === 'pacman' && (
-            <div className="flex flex-col items-center gap-5">
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.14em] text-yellow-300">Pac-Man</h2>
-              <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
-                Eat all dots. Avoid ghosts. Power pellets flip the tables.
-              </p>
-              <button onClick={startPacman} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-yellow-300/70 bg-yellow-300/10 text-yellow-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-yellow-300/20 transition-all duration-200">
-                Play
-              </button>
-              <p className="text-zinc-600 text-xs tracking-widest">Arrow keys to move · Space to start · Press P to close</p>
-            </div>
-          )}
         </div>
       )}
 
       {/* Playing */}
-      {gameState === 'playing' && arcadeGame !== 'pacman' && (
+      {gameState === 'playing' && (
         <>
           <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full cursor-none" />
         </>
-      )}
-      {gameState === 'playing' && arcadeGame === 'pacman' && (
-        <PacManGame onMenu={() => { setGameState('menu'); }} />
       )}
 
       {/* Game Over */}
