@@ -29,21 +29,17 @@ const TILE_MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-// Classic Pac-Man ghost colours — all distinct from each other and from the scared colour
 const GHOST_DEFS = [
   { x: 9,  y: 10, color: '#ef4444', delay: 0  }, // Blinky — red
   { x: 10, y: 10, color: '#f472b6', delay: 8  }, // Pinky  — pink
   { x: 11, y: 10, color: '#22d3ee', delay: 16 }, // Inky   — cyan
   { x: 10, y: 11, color: '#fb923c', delay: 24 }, // Clyde  — orange
 ];
-// Scared colour must differ from every ghost colour above
-const SCARED_COLOR   = '#6366f1'; // indigo
-const SCARED_FLASH   = '#e2e8f0'; // near-white flash
 
 type Ghost = {
   x: number; y: number; dx: number; dy: number;
   color: string; delay: number;
-  scared: boolean; eaten: boolean; exited: boolean; dtimer: number;
+  exited: boolean; dtimer: number;
 };
 
 type Pac = {
@@ -86,7 +82,6 @@ export function PacManGame({ onMenu }: Props) {
     let score: number;
     let lives: number;
     let state: GameState;
-    let pwrTimer: number;
     let tick0: number;
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let inputQ: { dx: number; dy: number }[] = [];
@@ -131,19 +126,18 @@ export function PacManGame({ onMenu }: Props) {
       pac = { x: 10, y: 17, dx: 0, dy: 0, mouth: 0.25, mdir: 1, lastAngle: 0 };
       ghosts = GHOST_DEFS.map(g => ({
         ...g, dx: 0, dy: -1,
-        scared: false, eaten: false, exited: false, dtimer: g.delay,
+        exited: false, dtimer: g.delay,
       }));
     }
 
     function doInit() {
       map = cloneMap();
-      score = 0; lives = 3; state = 'waiting'; pwrTimer = 0; tick0 = 0; inputQ = [];
+      score = 0; lives = 3; state = 'waiting'; tick0 = 0; inputQ = [];
       setLivesDisplay(3); setScoreDisplay(0);
       spawnAll(); render();
     }
 
     function moveGhost(g: Ghost) {
-      if (g.eaten) return;
       if (!g.exited) {
         g.dtimer--;
         if (g.dtimer > 0) return;
@@ -207,7 +201,6 @@ export function PacManGame({ onMenu }: Props) {
     function gameTick() {
       if (state !== 'playing') return;
       tick0++;
-      if (pwrTimer > 0) { pwrTimer--; if (pwrTimer === 0) ghosts.forEach(g => { g.scared = false; }); }
 
       if (inputQ.length) {
         const { dx, dy } = inputQ[0];
@@ -231,7 +224,6 @@ export function PacManGame({ onMenu }: Props) {
       if (cell === 2) { map[pac.y][pac.x] = 0; addScore(10); }
       else if (cell === 3) {
         map[pac.y][pac.x] = 0; addScore(50);
-        pwrTimer = 55; ghosts.forEach(g => { if (!g.eaten) g.scared = true; });
       }
 
       // Win check
@@ -243,17 +235,13 @@ export function PacManGame({ onMenu }: Props) {
       // Collision: "same cell after movement" OR "swapped cells" (pass-through)
       for (let i = 0; i < ghosts.length; i++) {
         const g = ghosts[i];
-        if (g.eaten || state !== 'playing') continue;
+        if (state !== 'playing') break;
 
         const sameCellNow = g.x === pac.x && g.y === pac.y;
-        // Swap: ghost moved from pac's NEW cell to pac's OLD cell while pac moved the other way
         const swapped = ghostSnap[i].x === pac.x && ghostSnap[i].y === pac.y
                      && g.x === prevPacX && g.y === prevPacY;
 
-        if (sameCellNow || swapped) {
-          if (g.scared) { g.eaten = true; g.scared = false; addScore(200); }
-          else { loseLife(); break; }
-        }
+        if (sameCellNow || swapped) { loseLife(); break; }
       }
 
       pac.mouth += 0.09 * pac.mdir;
@@ -303,15 +291,10 @@ export function PacManGame({ onMenu }: Props) {
 
       // Ghosts
       ghosts.forEach(g => {
-        if (g.eaten) return;
         const gx = OX + g.x*CS + CS/2, gy = OY + g.y*CS + CS/2, r2 = CS/2 - 1;
-        const scared = g.scared;
-        const col = scared
-          ? (pwrTimer < 15 && tick0 % 6 < 3 ? SCARED_FLASH : SCARED_COLOR)
-          : g.color;
 
         // Body
-        ctx.fillStyle = col;
+        ctx.fillStyle = g.color;
         ctx.beginPath();
         ctx.arc(gx, gy-1, r2, Math.PI, 0, false);
         ctx.lineTo(gx+r2, gy+r2);
@@ -326,15 +309,13 @@ export function PacManGame({ onMenu }: Props) {
         ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Eyes (not shown when scared)
-        if (!scared) {
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath(); ctx.arc(gx-r2*0.38, gy-r2*0.28, r2*0.28, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.arc(gx+r2*0.38, gy-r2*0.28, r2*0.28, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#1e40af';
-          ctx.beginPath(); ctx.arc(gx-r2*0.38+g.dx*r2*0.12, gy-r2*0.28+g.dy*r2*0.12, r2*0.14, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.arc(gx+r2*0.38+g.dx*r2*0.12, gy-r2*0.28+g.dy*r2*0.12, r2*0.14, 0, Math.PI*2); ctx.fill();
-        }
+        // Eyes
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(gx-r2*0.38, gy-r2*0.28, r2*0.28, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(gx+r2*0.38, gy-r2*0.28, r2*0.28, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#1e40af';
+        ctx.beginPath(); ctx.arc(gx-r2*0.38+g.dx*r2*0.12, gy-r2*0.28+g.dy*r2*0.12, r2*0.14, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(gx+r2*0.38+g.dx*r2*0.12, gy-r2*0.28+g.dy*r2*0.12, r2*0.14, 0, Math.PI*2); ctx.fill();
       });
 
       // Pac-Man
