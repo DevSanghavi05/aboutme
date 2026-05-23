@@ -203,6 +203,7 @@ export function AnimatedCircle() {
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-[0.3em] mb-2">Accomplishments</p>
                 <CardCarousel
                   items={[
+                    { title: 'Learnr', subtitle: 'The Duolingo for Anything', link: 'https://getlearnr.com' },
                     { title: 'Churro', subtitle: 'AI Pricing Automation', link: 'https://churro.live' },
                     { title: 'Verde', subtitle: 'Software for Forest Analytics', link: 'https://verdeearth.org' },
                     { title: 'Vex Robotics', subtitle: 'Regionals Qualification' },
