@@ -181,7 +181,7 @@ export function AnimatedCircle() {
                   {/* Card 2: Duolingo */}
                   <div className="cursor-target flex-1 min-w-[140px] flex items-center justify-center px-4 py-5 rounded-2xl border-2 border-dashed border-zinc-200/60 bg-white transition-colors duration-300 hover:border-zinc-300 hover:bg-zinc-50/50">
                     <p className="font-black text-zinc-800 tracking-[0.15em] uppercase text-xs text-center">
-                      Duolingo <CountUp to={900} duration={2} className="inline-block" />+
+                      Duolingo <CountUp to={950} duration={2} className="inline-block" />+
                     </p>
                   </div>
                 </div>
