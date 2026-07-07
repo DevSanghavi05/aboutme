@@ -242,7 +242,14 @@ export function AnimatedCircle() {
           </div>
         </div>
 
-        <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-xs text-zinc-500 tracking-[0.2em] uppercase font-medium">press p to play</p>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('arcade:open'))}
+          className="cursor-target absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 text-xs text-zinc-500 tracking-[0.2em] uppercase font-medium cursor-pointer hover:text-zinc-800 transition-colors touch-manipulation"
+          aria-label="Open the mini arcade"
+        >
+          press p to play
+        </button>
 
       </div>
     </div>

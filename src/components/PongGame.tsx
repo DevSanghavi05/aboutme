@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PacManGame } from "@/components/PacManGame";
+import { DinoGame } from "@/components/DinoGame";
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
-type ArcadeGame = 'pong' | 'invaders' | 'pacman';
+type ArcadeGame = 'pong' | 'invaders' | 'pacman' | 'dino';
 type InvaderOutcome = 'victory' | 'defeat' | null;
 type BulletType = 'machinegun' | 'bazooka' | 'electric';
 
@@ -235,24 +236,37 @@ export function PongGame() {
   }, [bulletType]);
 
   useEffect(() => {
+    const closeToMenu = () => {
+      setGameState('menu');
+      setWinner(null);
+      setInvaderOutcome(null);
+      setStoreOpen(false);
+      playerScoreRef.current = 0;
+      cpuScoreRef.current    = 0;
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'p') {
         e.preventDefault();
         setIsOpen(prev => {
-          if (prev) {
-            setGameState('menu');
-            setWinner(null);
-            setInvaderOutcome(null);
-            setStoreOpen(false);
-            playerScoreRef.current = 0;
-            cpuScoreRef.current    = 0;
-          }
+          if (prev) closeToMenu();
           return !prev;
         });
       }
     };
+    // Lets other UI (e.g. the "press p to play" prompt) open the arcade —
+    // notably so it works on touch devices with no keyboard.
+    const handleOpen = () => {
+      setIsOpen(prev => {
+        if (!prev) closeToMenu();
+        return true;
+      });
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('arcade:open', handleOpen);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('arcade:open', handleOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -324,6 +338,12 @@ export function PongGame() {
 
   const startPacman = useCallback(() => {
     setArcadeGame('pacman');
+    setStoreOpen(false);
+    setGameState('playing');
+  }, []);
+
+  const startDino = useCallback(() => {
+    setArcadeGame('dino');
     setStoreOpen(false);
     setGameState('playing');
   }, []);
@@ -514,7 +534,7 @@ export function PongGame() {
 
   // ── Game loop ──
   useEffect(() => {
-    if (!isOpen || gameState !== 'playing' || arcadeGame === 'pacman') {
+    if (!isOpen || gameState !== 'playing' || arcadeGame === 'pacman' || arcadeGame === 'dino') {
       document.body.style.overflow = isOpen ? 'hidden' : '';
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       return;
@@ -1726,6 +1746,9 @@ export function PongGame() {
             <button onClick={() => setArcadeGame('pacman')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pacman' ? 'border-yellow-300 text-yellow-300 bg-yellow-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Pac-Man
             </button>
+            <button onClick={() => setArcadeGame('dino')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'dino' ? 'border-[#ff70a6] text-[#ff70a6] bg-[#ff70a6]/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+              Dino Run
+            </button>
           </div>
 
           {arcadeGame === 'pong' && (
@@ -1781,6 +1804,19 @@ export function PongGame() {
               <p className="text-zinc-600 text-xs tracking-widest">Arrow keys to move · Space to start · Press P to close</p>
             </div>
           )}
+
+          {arcadeGame === 'dino' && (
+            <div className="flex flex-col items-center gap-5">
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.14em] text-[#ff70a6]">Dino Run</h2>
+              <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
+                Jump the cacti, duck the birds, grab the mystery box. Day turns to night as you run.
+              </p>
+              <button onClick={startDino} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-[#ff70a6]/70 bg-[#ff70a6]/10 text-[#ff9ec6] font-bold text-sm uppercase tracking-[0.15em] hover:bg-[#ff70a6]/20 transition-all duration-200">
+                Play
+              </button>
+              <p className="text-zinc-600 text-xs tracking-widest">Space / ↑ to jump · ↓ to duck · Press P to close</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1792,6 +1828,9 @@ export function PongGame() {
       )}
       {gameState === 'playing' && arcadeGame === 'pacman' && (
         <PacManGame onMenu={() => { setGameState('menu'); }} />
+      )}
+      {gameState === 'playing' && arcadeGame === 'dino' && (
+        <DinoGame onMenu={() => { setGameState('menu'); }} />
       )}
 
       {/* Game Over */}
