@@ -3,7 +3,6 @@ import TargetCursor from "@/components/TargetCursor";
 import "@/components/TargetCursor.css";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { PongGame } from "@/components/PongGame";
-import { Feedback } from "@/components/Feedback";
 
 export default function Home() {
   return (
@@ -12,7 +11,6 @@ export default function Home() {
       <TargetCursor targetSelector=".cursor-target" spinDuration={3} />
       <PongGame />
       <AnimatedCircle />
-      <Feedback />
     </main>
   );
 }

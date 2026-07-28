@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL("https://devsanghavi.com"),
   title: "Dev Sanghavi - Portfolio",
-  description: "Dev Sanghavi is a 12-year-old 6th-grade student, developer, and creator based in Houston, TX. Explore Dev Sanghavi's portfolio featuring accomplishments in software, AI, and robotics like Churro and Verde.",
+  description: "Dev Sanghavi is a 12-year-old 7th-grade student, developer, and creator based in Houston, TX. Explore Dev Sanghavi's portfolio featuring accomplishments in software, AI, and robotics like Churro and Verde.",
   keywords: ["Dev Sanghavi", "Houston", "Developer", "Student", "Portfolio", "Churro", "Verde", "AI", "Software"],
   authors: [{ name: "Dev Sanghavi" }],
   creator: "Dev Sanghavi",
