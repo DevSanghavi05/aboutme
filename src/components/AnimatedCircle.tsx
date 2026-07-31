@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useMemo, useState, useCallback } from "react";
+import { useRef, useMemo, useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
 import { Github, Linkedin, Mail, Code, ChevronLeft, ChevronRight, Phone } from "lucide-react";
 import ShinyText from "./ShinyText";
 import { TypewriterRole } from "./TypewriterRole";
@@ -91,32 +91,58 @@ function TickRing({ scrollProgress }: { scrollProgress: any }) {
 
 export function AnimatedCircle() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll();
+  const bioScrollRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  // Let the bio panel scroll on its own: stop wheel events from bubbling to the
+  // custom SmoothScroll window listener (which would otherwise hijack the page).
+  useEffect(() => {
+    const el = bioScrollRef.current;
+    if (!el) return;
+    const stop = (e: WheelEvent) => e.stopPropagation();
+    el.addEventListener("wheel", stop);
+    return () => el.removeEventListener("wheel", stop);
+  }, [expanded]);
+  // Scope progress to THIS container so the keyframes below are relative to the
+  // circle's own scroll span. 0 → container top at viewport top, 1 → bottom.
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
+
+  // Scroll-driven keyframes across the whole circle sequence (progress 0→1):
+  // image → name → Education → Accomplishments → Courses → Contact.
+  // Contact lands at 1.0 so there's no dead scroll tail after it.
 
   // ── Image & Name transitions ──
-  const imageOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0]);
-  const imageScale = useTransform(scrollYProgress, [0, 0.08], [1, 0.9]);
+  const imageOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
+  const imageScale = useTransform(scrollYProgress, [0, 0.06], [1, 0.9]);
+  // Fully remove the profile image from the render tree once it's faded out,
+  // so it can never bleed through during later section transitions.
+  const imageDisplay = useTransform(imageOpacity, (v) => (v > 0.01 ? "block" : "none"));
 
-  const nameOpacity = useTransform(scrollYProgress, [0.08, 0.15, 0.2, 0.25], [0, 1, 1, 0]);
-  const nameY = useTransform(scrollYProgress, [0.08, 0.15], [30, 0]);
+  const nameOpacity = useTransform(scrollYProgress, [0.06, 0.12, 0.17, 0.22], [0, 1, 1, 0]);
+  const nameY = useTransform(scrollYProgress, [0.06, 0.12], [30, 0]);
 
-  // ── Card sections (each appears INSIDE the circle) ──
-  const card1Opacity = useTransform(scrollYProgress, [0.2, 0.3], [0, 1]);
-  const card1Y = useTransform(scrollYProgress, [0.2, 0.3], [40, 0]);
-  const card1Out = useTransform(scrollYProgress, [0.35, 0.42], [1, 0]);
+  // ── Card 1: Education ──
+  const card1Opacity = useTransform(scrollYProgress, [0.20, 0.30], [0, 1]);
+  const card1Y = useTransform(scrollYProgress, [0.20, 0.30], [40, 0]);
+  const card1Out = useTransform(scrollYProgress, [0.40, 0.48], [1, 0]);
   const card1Display = useTransform(card1Opacity, (v) => (v > 0.05 ? "flex" : "none"));
 
-  const card2Opacity = useTransform(scrollYProgress, [0.4, 0.5], [0, 1]);
-  const card2Y = useTransform(scrollYProgress, [0.4, 0.5], [40, 0]);
-  const card2Out = useTransform(scrollYProgress, [0.6, 0.68], [1, 0]);
+  // ── Card 2: Accomplishments ──
+  const card2Opacity = useTransform(scrollYProgress, [0.46, 0.56], [0, 1]);
+  const card2Y = useTransform(scrollYProgress, [0.46, 0.56], [40, 0]);
+  const card2Out = useTransform(scrollYProgress, [0.70, 0.78], [1, 0]);
   const card2Display = useTransform(card2Opacity, (v) => (v > 0.05 ? "flex" : "none"));
 
-  const card3Opacity = useTransform(scrollYProgress, [0.66, 0.76], [0, 1]);
-  const card3Y = useTransform(scrollYProgress, [0.66, 0.76], [40, 0]);
+  // ── Card 3: Contact ──
+  const card3Opacity = useTransform(scrollYProgress, [0.84, 1.0], [0, 1]);
+  const card3Y = useTransform(scrollYProgress, [0.84, 1.0], [40, 0]);
   const card3Display = useTransform(card3Opacity, (v) => (v > 0.05 ? "flex" : "none"));
 
   return (
-    <div ref={containerRef} className="h-[400vh] w-full relative bg-[#fdfdfd]">
+    <div ref={containerRef} className="h-[328vh] w-full relative bg-[#fdfdfd]">
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
 
         {/* Central Circle Container - 520px desktop */}
@@ -131,7 +157,7 @@ export function AnimatedCircle() {
             {/* Layer 1: Profile Image */}
             <motion.div
               className="absolute inset-0"
-              style={{ opacity: imageOpacity, scale: imageScale }}
+              style={{ opacity: imageOpacity, scale: imageScale, display: imageDisplay }}
             >
               <Image
                 src="/profile.jpg"
@@ -144,24 +170,72 @@ export function AnimatedCircle() {
 
             {/* Layer 2: Name - Jvalaj-inspired hero */}
             <motion.div
-              className="absolute inset-0 flex flex-col items-start justify-center bg-white z-10 px-8 md:px-14 pointer-events-none"
+              className={`absolute inset-0 flex flex-col justify-center bg-white z-10 px-8 md:px-14 pointer-events-none ${
+                expanded ? "items-center text-center" : "items-start"
+              }`}
               style={{ opacity: nameOpacity, y: nameY }}
             >
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-400 leading-tight">
-                <ShinyText
-                  text="Dev"
-                  color="#1a1a1a"
-                  shineColor="#888888"
-                  speed={3}
-                  className="font-black text-zinc-900"
-                />{" "}
-                is a <TypewriterRole />.
-              </h1>
-              <div className="mt-8 space-y-1">
-                <p className="text-zinc-400 text-sm md:text-base font-medium">Houston, TX</p>
-                <p className="text-zinc-400 text-sm md:text-base font-medium">12 yrs</p>
-                <p className="text-zinc-400 text-sm md:text-base font-medium">7th grade</p>
-              </div>
+              {!expanded && (
+                <h1 className="text-[1.75rem] md:text-[2.75rem] font-bold tracking-tight text-zinc-400 leading-tight whitespace-nowrap">
+                  <ShinyText
+                    text="Dev"
+                    color="#1a1a1a"
+                    shineColor="#888888"
+                    speed={3}
+                    className="font-black text-zinc-900"
+                  />{" "}
+                  is a <TypewriterRole />.
+                </h1>
+              )}
+
+              <p className="mt-5 text-zinc-500 text-sm md:text-base font-medium max-w-sm leading-relaxed">
+                Hi! I&apos;m Dev Sanghavi, the founder of{" "}
+                <a
+                  href="https://getlearnr.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cursor-target pointer-events-auto underline underline-offset-2 text-zinc-800 hover:text-zinc-950 transition-colors"
+                >
+                  Learnr
+                </a>{" "}
+                😎.
+              </p>
+
+              {expanded ? (
+                <div
+                  ref={bioScrollRef}
+                  className="mt-5 max-w-sm space-y-3 text-zinc-500 text-xs md:text-sm leading-relaxed pointer-events-auto max-h-[26vh] md:max-h-[34vh] overflow-y-auto pr-2 -mr-2"
+                >
+                  <p>
+                    I focus on creating high impact systems, mostly in consumer
+                    software. Right now, I&apos;m building Learnr, a platform that
+                    turns user prompts into comprehensive, personalized courses. I
+                    love tackling the complex engineering, product, and growth
+                    challenges that come with shipping scalable consumer products.
+                  </p>
+                  <p>
+                    Outside of building, I love learning languages, with a
+                    ~1,000-day Duolingo streak (fluent in 3 languages, learning a
+                    fourth). I also play guitar and travel a lot (been to 87
+                    countries so far).
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-8 space-y-1">
+                  <p className="text-zinc-400 text-sm md:text-base font-medium">Houston, TX</p>
+                  <p className="text-zinc-400 text-sm md:text-base font-medium">12 yrs</p>
+                  <p className="text-zinc-400 text-sm md:text-base font-medium">7th grade</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="cursor-target pointer-events-auto mt-5 inline-flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-zinc-800 uppercase tracking-[0.2em] transition-colors"
+                aria-expanded={expanded}
+              >
+                {expanded ? "− Less" : "+ More about me"}
+              </button>
             </motion.div>
 
             {/* Layer 3: Card 1 - Education */}
@@ -181,7 +255,7 @@ export function AnimatedCircle() {
                   {/* Card 2: Duolingo */}
                   <div className="cursor-target flex-1 min-w-[140px] flex items-center justify-center px-4 py-5 rounded-2xl border-2 border-dashed border-zinc-200/60 bg-white transition-colors duration-300 hover:border-zinc-300 hover:bg-zinc-50/50">
                     <p className="font-black text-zinc-800 tracking-[0.15em] uppercase text-xs text-center">
-                      Duolingo <CountUp to={950} duration={2} className="inline-block" />+
+                      Duolingo <CountUp to={1000} duration={2} className="inline-block" />+
                     </p>
                   </div>
                 </div>

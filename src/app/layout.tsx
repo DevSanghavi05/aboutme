@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans bg-white text-zinc-900 antialiased selection:bg-zinc-200`}
+        className={`${spaceGrotesk.variable} ${spaceGrotesk.className} bg-white text-zinc-900 antialiased selection:bg-zinc-200`}
       >
         {children}
       </body>

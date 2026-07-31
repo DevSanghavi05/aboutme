@@ -56,7 +56,7 @@ export default function CardCarousel({ items }: CardCarouselProps) {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center">
+    <div className="relative w-full flex flex-col items-center justify-center">
       {/* Card display area */}
       <div className="relative w-[200px] h-[140px] md:w-[260px] md:h-[170px] flex items-center justify-center">
         <AnimatePresence custom={direction} mode="wait">
