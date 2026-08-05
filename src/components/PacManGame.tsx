@@ -467,15 +467,6 @@ export function PacManGame({ onMenu }: Props) {
       ctx.arc(px, py, CS/2-1, a, a + Math.PI*(2-pac.mouth*2), false);
       ctx.closePath(); ctx.fill();
 
-      // "P to exit" hint in bottom letterbox
-      if (H - (OY + GH) > 14) {
-        const hy = OY + GH + Math.floor((H - OY - GH) / 2);
-        ctx.font = `500 ${Math.max(10, Math.min(13, CS-8))}px Courier New`;
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('P  to exit', OX + GW/2, hy);
-      }
-
       // Waiting splash
       if (state === 'waiting') {
         ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(OX, OY, GW, GH);
@@ -483,8 +474,6 @@ export function PacManGame({ onMenu }: Props) {
         ctx.fillStyle = '#facc15'; ctx.font = `bold ${tFS}px Courier New`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('PAC-MAN', OX+GW/2, OY+GH/2 - tFS*0.9);
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = `${Math.max(11, tFS*0.5)}px Courier New`;
-        ctx.fillText('Arrow keys  ·  Space to start', OX+GW/2, OY+GH/2 + tFS*0.2);
       }
 
       // Game-over dim (React overlay handles title + buttons)
@@ -533,7 +522,7 @@ export function PacManGame({ onMenu }: Props) {
   }
 
   const btnBase =
-    "px-8 py-3 rounded-xl border-2 border-dashed font-bold text-sm uppercase tracking-[0.15em] transition-all duration-200 cursor-target";
+    "px-8 py-3 rounded-xl border-2 border-dashed font-bold text-sm uppercase tracking-[0.15em] transition-all duration-200 cursor-pointer";
 
   return (
     <div className="absolute inset-0">

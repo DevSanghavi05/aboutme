@@ -14,6 +14,7 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+    zoom: 0.8;
     @apply antialiased;
   }
 }

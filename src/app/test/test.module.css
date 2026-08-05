@@ -1,0 +1,723 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  background: #ffffff;
+}
+
+.aboutPage {
+  height: 125svh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.topBar {
+  position: relative;
+  display: flex;
+  width: min(996px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 32px 0 28px;
+  border-bottom: 0;
+  background: #ffffff;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navBrand {
+  display: inline-flex;
+  color: #182033;
+  font-size: 1.5rem;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  text-decoration: none;
+  align-items: center;
+  gap: 11px;
+}
+
+.navBrand img {
+  border-radius: 50%;
+}
+
+.navBrand:focus-visible,
+.menuShell a:focus-visible {
+  outline: 3px solid rgb(20 92 243 / 28%);
+  outline-offset: 2px;
+}
+
+.menuShell {
+  margin: 0;
+}
+
+.menuShell[data-active="home"] a[href="/"],
+.menuShell[data-active="about"] a[href="/about"] {
+  color: #18181b;
+}
+
+.frame {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100svh - 96px);
+  margin: 12px;
+  overflow: hidden;
+  border: 8px solid #2864f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(40 100 240 / 8%);
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  min-height: calc(100svh - 112px);
+  padding: 64px 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.homeFrame,
+.playFrame,
+.aboutFrame {
+  box-sizing: border-box;
+  height: calc(125svh - 120px);
+  min-height: 0;
+}
+
+.homeHero {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  padding-block: 32px;
+}
+
+.playPortal {
+  position: relative;
+  width: 100%;
+  min-height: calc(100svh - 112px);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.playPortal canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.playFrame .playPortal {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+
+.aboutFrame {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.aboutFrame .aboutSection {
+  min-height: 0;
+}
+
+.intro {
+  display: flex;
+  width: min(900px, calc(100% - 80px));
+  flex-direction: column;
+  align-items: center;
+}
+
+.portrait {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 28px;
+  border: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: none;
+}
+
+.homePortrait {
+  width: 210px;
+  height: 210px;
+  margin-bottom: 32px;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  color: #182033;
+  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 450;
+  line-height: 1.18;
+  letter-spacing: -0.045em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.homeCopy {
+  font-size: clamp(2.5rem, 4.6vw, 3.8rem);
+}
+
+.copy span {
+  display: block;
+}
+
+.copy em {
+  font-weight: 500;
+  font-style: italic;
+}
+
+.blue {
+  color: #145cf3;
+}
+
+.learnrLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #145cf3;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.learnrLink:hover {
+  color: #0d47c7;
+  text-decoration-color: #0d47c7;
+}
+
+.learnrLink:focus-visible {
+  border-radius: 0.1em;
+  outline: 3px solid rgb(20 92 243 / 28%);
+  outline-offset: 4px;
+}
+
+.contacts {
+  display: flex;
+  width: 100%;
+  margin: 28px 0 0;
+  padding: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  color: #353c4c;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  list-style: none;
+}
+
+.homeContacts {
+  margin-top: 32px;
+  gap: 30px;
+}
+
+.contactItem {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+}
+
+.homeContact {
+  display: inline-flex;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: #353c4c;
+  transition: color 160ms ease;
+  align-items: center;
+  justify-content: center;
+}
+
+.homeContact svg {
+  width: 40px;
+  height: 40px;
+  stroke-width: 1.75;
+}
+
+.homeContact:hover {
+  color: #145cf3;
+}
+
+.homeContact:focus-visible {
+  outline: 3px solid rgb(20 92 243 / 28%);
+  outline-offset: 2px;
+}
+
+.contactTrigger {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  cursor: pointer;
+  list-style: none;
+  transition: color 160ms ease;
+  align-items: center;
+  justify-content: center;
+}
+
+.contactTrigger::-webkit-details-marker {
+  display: none;
+}
+
+.contactTrigger svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.75;
+}
+
+.contactTrigger:hover,
+.contactItem[open] .contactTrigger {
+  color: #145cf3;
+}
+
+.contactTrigger:focus-visible,
+.contactValue:focus-visible {
+  outline: 3px solid rgb(20 92 243 / 28%);
+  outline-offset: -3px;
+}
+
+.contactValue {
+  display: inline-flex;
+  min-height: 48px;
+  padding: 0 8px 0 4px;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  animation: revealContact 180ms ease both;
+  align-items: center;
+}
+
+.contactValue:hover {
+  color: #145cf3;
+}
+
+.xIcon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 34px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.aboutSection {
+  min-height: calc(100svh - 112px);
+  width: min(1245px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 38px 0 72px;
+  background: transparent;
+}
+
+.aboutTitle {
+  width: min(1160px, 100%);
+  margin: 0 auto 30px;
+  color: #252525;
+  font-size: 2.6rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.aboutGrid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 520px) minmax(0, 580px);
+  align-items: stretch;
+  justify-content: center;
+  gap: 60px;
+}
+
+.travelFigure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 700px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.travelImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: none;
+}
+
+.aboutCopy {
+  display: flex;
+  height: 100%;
+  min-height: 700px;
+  flex-direction: column;
+  color: #292929;
+  justify-content: space-between;
+  gap: 0.35em;
+}
+
+.aboutCopy p {
+  margin: 0;
+  font-size: 2.18rem;
+  font-weight: 400;
+  line-height: 1.24;
+  letter-spacing: -0.03em;
+}
+
+.aboutCopy .aboutLead {
+  font-weight: 650;
+}
+
+.aboutCopy p + p {
+  margin-top: 0;
+}
+
+.aboutCopy a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+}
+
+.githubActivity {
+  margin-top: 64px;
+}
+
+.githubActivity h2 {
+  margin: 0;
+  color: #252525;
+  font-size: 2.25rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.githubActivityHeading {
+  display: flex;
+  margin-bottom: 28px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.githubActivityHeading span {
+  color: #667085;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.githubActivityCard {
+  display: block;
+  padding: 25px 26px;
+  overflow-x: auto;
+  border: 1px solid #e5e2e2;
+  border-radius: 10px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.githubActivityCard:focus-visible {
+  outline: 3px solid rgb(40 100 240 / 25%);
+  outline-offset: 4px;
+}
+
+.githubInlineActivity {
+  width: min(900px, 100%);
+  margin: 16px auto 0;
+}
+
+.githubChartWrap {
+  position: relative;
+}
+
+.githubInlineFooter {
+  display: flex;
+  margin-top: 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  text-align: center;
+}
+
+.githubInlineFooter a {
+  color: #2864f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.githubInlineClose {
+  position: absolute;
+  z-index: 2;
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid #dfe3e8;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #182033;
+  transform: translate(40%, -40%);
+  top: 0;
+  right: 0;
+  place-items: center;
+}
+
+.githubInlineClose:hover {
+  background: #f4f6f8;
+}
+
+.githubContributionTotal {
+  margin: 0;
+  color: #525b6a;
+  font-size: 1rem;
+  font-weight: 550;
+}
+
+.githubGrid {
+  display: grid;
+  min-width: 720px;
+  grid-template-columns: repeat(53, minmax(8px, 1fr));
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+
+.githubCell {
+  display: block;
+  border-radius: 2px;
+  aspect-ratio: 1;
+}
+
+.githubLevel0 {
+  background: #e6e8ea;
+}
+
+.githubLevel1 {
+  background: #acd3ea;
+}
+
+.githubLevel2 {
+  background: #66a8d4;
+}
+
+.githubLevel3 {
+  background: #317bb5;
+}
+
+.githubLevel4 {
+  background: #205f9b;
+}
+
+@keyframes revealContact {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .aboutGrid {
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+    gap: 38px;
+  }
+
+  .aboutCopy p {
+    font-size: clamp(1.3rem, 3vw, 2.15rem);
+    line-height: 1.24;
+  }
+
+  .travelFigure {
+    min-height: 0;
+  }
+
+  .aboutCopy {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .frame {
+    min-height: calc(100svh - 84px);
+    margin: 10px;
+    border-radius: 15px;
+  }
+
+  .topBar {
+    width: calc(100% - 40px);
+    padding: 24px 0;
+  }
+
+  .navBrand span {
+    display: none;
+  }
+
+  .menuShell {
+    margin: 0;
+  }
+
+  .hero {
+    min-height: calc(100svh - 100px);
+    padding: 48px 20px;
+  }
+
+  .homeFrame,
+  .playFrame,
+  .aboutFrame {
+    height: calc(125svh - 90px);
+    min-height: 0;
+  }
+
+  .homeHero {
+    min-height: 0;
+    padding: 28px 20px;
+  }
+
+  .intro {
+    width: calc(100% - 64px);
+  }
+
+  .copy {
+    font-size: clamp(1.55rem, 6.25vw, 2rem);
+  }
+
+  .homeCopy {
+    font-size: clamp(1.9rem, 7vw, 2.45rem);
+  }
+
+  .portrait {
+    width: 116px;
+    height: 116px;
+    margin-bottom: 22px;
+  }
+
+  .homePortrait {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 24px;
+  }
+
+  .contacts {
+    margin-top: 24px;
+    font-size: 0.94rem;
+  }
+
+  .homeContacts {
+    margin-top: 24px;
+    gap: 20px;
+  }
+
+  .homeContact {
+    width: 50px;
+    height: 50px;
+  }
+
+  .homeContact svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .aboutSection {
+    width: min(100% - 40px, 620px);
+    padding: 38px 0 64px;
+  }
+
+  .aboutGrid {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .travelFigure {
+    height: auto;
+    min-height: 0;
+    border-radius: 12px;
+    aspect-ratio: 3 / 4;
+  }
+
+  .aboutTitle {
+    margin-bottom: 22px;
+    font-size: 2rem;
+  }
+
+  .aboutCopy p {
+    font-size: clamp(1.4rem, 5.8vw, 1.8rem);
+    line-height: 1.3;
+  }
+
+  .aboutCopy {
+    height: auto;
+    gap: 0.58em;
+  }
+
+  .githubActivity {
+    margin-top: 48px;
+  }
+
+  .githubActivity h2 {
+    font-size: 2rem;
+  }
+
+  .githubActivityHeading {
+    margin-bottom: 22px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .githubActivityCard {
+    padding: 20px;
+  }
+
+  .githubInlineActivity {
+    margin-top: 14px;
+  }
+
+  .githubInlineFooter {
+    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-height: 420px) {
+  .hero {
+    padding-block: 28px;
+  }
+
+  .portrait {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 16px;
+  }
+
+  .copy {
+    font-size: clamp(1.45rem, 5vw, 1.85rem);
+  }
+
+  .contacts {
+    margin-top: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contactValue {
+    animation: none;
+  }
+}

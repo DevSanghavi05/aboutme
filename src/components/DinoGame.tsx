@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-interface Props { onMenu: () => void; }
+interface Props {
+  onMenu?: () => void;
+  startOnSpace?: boolean;
+  embedded?: boolean;
+  showMenuButton?: boolean;
+}
 
 interface Obstacle {
   type: 'cactus' | 'rock' | 'bird' | 'swoopBird';
@@ -17,7 +22,12 @@ interface Cloud { x: number; y: number; speed: number; w: number; h: number; alp
  * 8-BIT COLOR PIXELS - MYSTERY BOX EDITION
  * Ported into the mini-arcade from the standalone HTML game.
  */
-export function DinoGame({ onMenu }: Props) {
+export function DinoGame({
+  onMenu,
+  startOnSpace = false,
+  embedded = false,
+  showMenuButton = true,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -82,6 +92,7 @@ export function DinoGame({ onMenu }: Props) {
     const baseSpeed = 4.0;
     let gameSpeed = baseSpeed;
     let isGameOver = false;
+    let isWaitingToStart = startOnSpace;
     const isPaused = false;
     let frameCount = 0;
 
@@ -802,6 +813,13 @@ export function DinoGame({ onMenu }: Props) {
     // --- Input handlers (window-scoped so the arcade container can host the game) ---
     const handleKeyDown = (e: KeyboardEvent) => {
       ensureAudio();
+      if (isWaitingToStart && e.code === 'Space') {
+        e.preventDefault();
+        isWaitingToStart = false;
+        resetGame();
+        jump();
+        return;
+      }
       keys[e.code] = true;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
         e.preventDefault();
@@ -813,7 +831,16 @@ export function DinoGame({ onMenu }: Props) {
     const handleKeyUp = (e: KeyboardEvent) => { keys[e.code] = false; };
     const handleClick = () => { ensureAudio(); };
     const handleTouch = (e: TouchEvent) => {
-      e.preventDefault(); ensureAudio(); jump(); if (isGameOver) resetGame();
+      e.preventDefault();
+      ensureAudio();
+      if (isWaitingToStart) {
+        isWaitingToStart = false;
+        resetGame();
+        jump();
+        return;
+      }
+      jump();
+      if (isGameOver) resetGame();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -822,7 +849,8 @@ export function DinoGame({ onMenu }: Props) {
     canvas.addEventListener('touchstart', handleTouch, { passive: false });
 
     seedClouds();
-    resetGame();
+    if (isWaitingToStart) draw();
+    else resetGame();
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -832,7 +860,7 @@ export function DinoGame({ onMenu }: Props) {
       canvas.removeEventListener('touchstart', handleTouch);
       try { audioCtx?.close(); } catch { /* ignore */ }
     };
-  }, []);
+  }, [startOnSpace]);
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6 py-6">
@@ -841,7 +869,9 @@ export function DinoGame({ onMenu }: Props) {
         style={{
           // Fill as much of the screen as possible while keeping the 400:150
           // aspect ratio, leaving room for the controls row below.
-          width: 'min(96vw, calc((100vh - 160px) * 2.6667), 1800px)',
+          width: embedded
+            ? 'min(94%, 1200px)'
+            : 'min(96vw, calc((100vh - 160px) * 2.6667), 1800px)',
           aspectRatio: '400 / 150',
         }}
       >
@@ -851,17 +881,16 @@ export function DinoGame({ onMenu }: Props) {
           style={{ imageRendering: 'pixelated' }}
         />
       </div>
+      {showMenuButton && (
       <div className="flex flex-col items-center gap-3">
-        <p className="text-zinc-500 text-xs tracking-widest uppercase text-center leading-relaxed">
-          Space / ↑ to Jump · ↓ to Duck · M to Mute · Grab the Mystery Box
-        </p>
         <button
           onClick={onMenu}
-          className="cursor-target px-8 py-2 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
+          className="cursor-pointer px-8 py-2 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
         >
           Menu
         </button>
       </div>
+      )}
     </div>
   );
 }

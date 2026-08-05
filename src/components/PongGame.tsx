@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PacManGame } from "@/components/PacManGame";
 import { DinoGame } from "@/components/DinoGame";
+import { PONG_DIFFICULTY_SETTINGS, PONG_WIN_SCORE } from "@/lib/pongSettings";
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
@@ -91,14 +92,8 @@ const POWERUP_DURATION = 6000;
 const POWERUP_KINDS: PowerUpKind[] = ['rapidfire', 'tripleshot', 'speed', 'shield'];
 let _puIdCounter = 0;
 
-const DIFFICULTY_SETTINGS = {
-  easy:       { cpuSpeed: 6,  cpuReaction: 0.78, ballSpeed: 6,  speedGain: 0.40, maxSpeed: 17, playerSpeed: 17, playerLerp: 0.30 },
-  medium:     { cpuSpeed: 8,  cpuReaction: 0.90, ballSpeed: 8,  speedGain: 0.55, maxSpeed: 23, playerSpeed: 18, playerLerp: 0.30 },
-  hard:       { cpuSpeed: 11, cpuReaction: 0.97, ballSpeed: 10, speedGain: 0.70, maxSpeed: 30, playerSpeed: 20, playerLerp: 0.30 },
-  impossible: { cpuSpeed: 20, cpuReaction: 1.0,  ballSpeed: 11, speedGain: 0.9,  maxSpeed: 50, playerSpeed: 26, playerLerp: 0.50 },
-};
-
-const WIN_SCORE = 5;
+const DIFFICULTY_SETTINGS = PONG_DIFFICULTY_SETTINGS;
+const WIN_SCORE = PONG_WIN_SCORE;
 const COUNTDOWN_SECS = 3;
 const MAX_UPGRADE_LEVEL = 6;
 const INVADER_TOTAL_WAVES = 12;
@@ -156,8 +151,8 @@ function drawLightning(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
   ctx.stroke();
 }
 
-export function PongGame() {
-  const [isOpen, setIsOpen] = useState(false);
+export function PongGame({ openByDefault = false }: { openByDefault?: boolean }) {
+  const [isOpen, setIsOpen] = useState(openByDefault);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu');
   const [arcadeGame, setArcadeGame] = useState<ArcadeGame>('pong');
@@ -263,6 +258,9 @@ export function PongGame() {
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('arcade:open', handleOpen);
+    if (new URLSearchParams(window.location.search).get('play') === '1') {
+      handleOpen();
+    }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('arcade:open', handleOpen);
@@ -275,6 +273,17 @@ export function PongGame() {
     onFullscreenChange();
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousZoom = document.body.style.zoom;
+    document.body.style.zoom = '1';
+
+    return () => {
+      document.body.style.zoom = previousZoom;
+    };
+  }, [isOpen]);
 
   const startGame = useCallback((diff: Difficulty) => {
     setArcadeGame('pong');
@@ -453,7 +462,7 @@ export function PongGame() {
             <p className="text-emerald-300 text-sm tracking-widest uppercase">Coins: {bankCoins}</p>
             <button
               onClick={() => void toggleFullscreen()}
-              className="cursor-target px-3 py-1.5 rounded-lg border border-zinc-600 bg-zinc-900/85 text-zinc-100 text-[10px] uppercase tracking-[0.12em] hover:border-white hover:bg-zinc-800 transition"
+              className="cursor-pointer px-3 py-1.5 rounded-lg border border-zinc-600 bg-zinc-900/85 text-zinc-100 text-[10px] uppercase tracking-[0.12em] hover:border-white hover:bg-zinc-800 transition"
             >
               {isFullscreen ? 'Exit Full' : 'Full'}
             </button>
@@ -502,7 +511,7 @@ export function PongGame() {
                   <button
                     onClick={() => purchaseUpgrade(key)}
                     disabled={maxed || !afford}
-                    className="cursor-target px-4 py-2 rounded-lg border border-dashed border-zinc-600 text-xs font-bold tracking-[0.1em] uppercase text-white disabled:opacity-35 disabled:cursor-not-allowed hover:border-emerald-400 hover:bg-emerald-400/10 transition"
+                    className="cursor-pointer px-4 py-2 rounded-lg border border-dashed border-zinc-600 text-xs font-bold tracking-[0.1em] uppercase text-white disabled:opacity-35 disabled:cursor-not-allowed hover:border-emerald-400 hover:bg-emerald-400/10 transition"
                   >
                     {maxed ? 'Max' : `${price} C`}
                   </button>
@@ -513,7 +522,7 @@ export function PongGame() {
         </div>
         <div className="flex items-center justify-between text-xs text-zinc-500 tracking-wide px-6 py-4 md:px-8 border-t border-zinc-800/60">
           <p>Coins are rare - earned by clearing waves and hitting enemies.</p>
-          <button onClick={() => setStoreOpen(false)} className="cursor-target px-3 py-2 rounded-lg border border-zinc-700 hover:border-white hover:bg-white/5 text-white text-[11px] uppercase tracking-[0.12em]">
+          <button onClick={() => setStoreOpen(false)} className="cursor-pointer px-3 py-2 rounded-lg border border-zinc-700 hover:border-white hover:bg-white/5 text-white text-[11px] uppercase tracking-[0.12em]">
             Close
           </button>
         </div>
@@ -1382,12 +1391,6 @@ export function PongGame() {
         ctx.fillStyle = hasShield ? '#8888ff' : '#79ffa1';
         ctx.fillText(`Coins  +${runCoinsRef.current}`, 22, 94);
 
-        // Controls hint
-        ctx.fillStyle = 'rgba(255,255,255,0.28)';
-        ctx.font = '500 10px system-ui, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText('A/D: Move  SPACE: Fire  B: Store  P: Exit', width - 14, height - 12);
-
         // Wave notice
         if (now < invaderWaveNoticeUntilRef.current) {
           const remainingMs = invaderWaveNoticeUntilRef.current - now;
@@ -1698,15 +1701,6 @@ export function PongGame() {
       ctx.font = '600 11px system-ui, sans-serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
       ctx.fillText(modeRef.current === '2player' ? '2P' : difficulty.toUpperCase(), 20, canvas.height - 16);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '500 11px system-ui, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText("'P' to exit", canvas.width - 20, canvas.height - 16);
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.font = '500 11px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`First to ${WIN_SCORE}`, canvas.width / 2, canvas.height - 16);
-
       requestRef.current = requestAnimationFrame(loop);
     };
 
@@ -1728,7 +1722,7 @@ export function PongGame() {
     <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-md flex items-center justify-center">
       <button
         onClick={() => void toggleFullscreen()}
-        className="absolute top-4 right-4 z-40 cursor-target px-4 py-2 rounded-lg border border-zinc-500 bg-black/80 text-zinc-100 text-[11px] uppercase tracking-[0.12em] hover:border-white hover:bg-zinc-900/95 transition"
+        className="absolute top-4 right-4 z-40 cursor-pointer px-4 py-2 rounded-lg border border-zinc-500 bg-black/80 text-zinc-100 text-[11px] uppercase tracking-[0.12em] hover:border-white hover:bg-zinc-900/95 transition"
       >
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
@@ -1737,16 +1731,16 @@ export function PongGame() {
       {gameState === 'menu' && (
         <div className="flex flex-col items-center gap-8 w-full px-4">
           <div className="flex items-center gap-3 flex-wrap justify-center">
-            <button onClick={() => setArcadeGame('pong')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pong' ? 'border-white text-white bg-white/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+            <button onClick={() => setArcadeGame('pong')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pong' ? 'border-white text-white bg-white/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Pong
             </button>
-            <button onClick={() => setArcadeGame('invaders')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'invaders' ? 'border-emerald-300 text-emerald-300 bg-emerald-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+            <button onClick={() => setArcadeGame('invaders')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'invaders' ? 'border-emerald-300 text-emerald-300 bg-emerald-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Space Invaders
             </button>
-            <button onClick={() => setArcadeGame('pacman')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pacman' ? 'border-yellow-300 text-yellow-300 bg-yellow-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+            <button onClick={() => setArcadeGame('pacman')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'pacman' ? 'border-yellow-300 text-yellow-300 bg-yellow-300/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Pac-Man
             </button>
-            <button onClick={() => setArcadeGame('dino')} className={`cursor-target px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'dino' ? 'border-[#ff70a6] text-[#ff70a6] bg-[#ff70a6]/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+            <button onClick={() => setArcadeGame('dino')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'dino' ? 'border-[#ff70a6] text-[#ff70a6] bg-[#ff70a6]/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Dino Run
             </button>
           </div>
@@ -1758,18 +1752,16 @@ export function PongGame() {
                 <p className="text-zinc-500 text-xs tracking-widest uppercase">VS CPU</p>
                 <div className="flex gap-4 flex-wrap justify-center">
                   {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
-                    <button key={d} onClick={() => startGame(d)} className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">{d}</button>
+                    <button key={d} onClick={() => startGame(d)} className="cursor-pointer px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">{d}</button>
                   ))}
-                  <button onClick={() => startGame('impossible')} className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-red-900 bg-transparent text-red-500 font-bold text-sm uppercase tracking-[0.15em] hover:border-red-500 hover:bg-red-500/10 transition-all duration-200">impossible</button>
+                  <button onClick={() => startGame('impossible')} className="cursor-pointer px-8 py-3 rounded-xl border-2 border-dashed border-red-900 bg-transparent text-red-500 font-bold text-sm uppercase tracking-[0.15em] hover:border-red-500 hover:bg-red-500/10 transition-all duration-200">impossible</button>
                 </div>
               </div>
               <div className="w-64 border-t border-zinc-800" />
               <div className="flex flex-col items-center gap-4">
                 <p className="text-zinc-500 text-xs tracking-widest uppercase">Local Multiplayer</p>
-                <button onClick={startTwoPlayer} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">2 Player</button>
-                <p className="text-zinc-600 text-xs tracking-widest">P1: W / S  ·  P2: ↑ / ↓</p>
+                <button onClick={startTwoPlayer} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">2 Player</button>
               </div>
-              <p className="text-zinc-600 text-xs tracking-widest">First to {WIN_SCORE} wins · Press P to close</p>
             </>
           )}
 
@@ -1779,16 +1771,15 @@ export function PongGame() {
               <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
                 Clear 12 waves. Earn rare coins. Upgrade your ship.
               </p>
-
               <div className="flex gap-4">
-                <button onClick={startInvaders} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-emerald-300/70 bg-emerald-300/10 text-emerald-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-300/20 transition-all duration-200">
+                <button onClick={startInvaders} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-emerald-300/70 bg-emerald-300/10 text-emerald-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-emerald-300/20 transition-all duration-200">
                   Launch Mission
                 </button>
-                <button onClick={() => setStoreOpen(prev => !prev)} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">
+                <button onClick={() => setStoreOpen(prev => !prev)} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-zinc-600 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200">
                   {storeOpen ? 'Hide Store' : 'Open Store'}
                 </button>
               </div>
-              <p className="text-zinc-600 text-xs tracking-widest">Coins: {bankCoins} · Press P to close</p>
+              <p className="text-zinc-600 text-xs tracking-widest">Coins: {bankCoins}</p>
             </div>
           )}
 
@@ -1798,10 +1789,9 @@ export function PongGame() {
               <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
                 Eat all dots. Avoid ghosts. Power pellets flip the tables.
               </p>
-              <button onClick={startPacman} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-yellow-300/70 bg-yellow-300/10 text-yellow-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-yellow-300/20 transition-all duration-200">
+              <button onClick={startPacman} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-yellow-300/70 bg-yellow-300/10 text-yellow-200 font-bold text-sm uppercase tracking-[0.15em] hover:bg-yellow-300/20 transition-all duration-200">
                 Play
               </button>
-              <p className="text-zinc-600 text-xs tracking-widest">Arrow keys to move · Space to start · Press P to close</p>
             </div>
           )}
 
@@ -1811,10 +1801,9 @@ export function PongGame() {
               <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
                 Jump the cacti, duck the birds, grab the mystery box. Day turns to night as you run.
               </p>
-              <button onClick={startDino} className="cursor-target px-10 py-3 rounded-xl border-2 border-dashed border-[#ff70a6]/70 bg-[#ff70a6]/10 text-[#ff9ec6] font-bold text-sm uppercase tracking-[0.15em] hover:bg-[#ff70a6]/20 transition-all duration-200">
+              <button onClick={startDino} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-[#ff70a6]/70 bg-[#ff70a6]/10 text-[#ff9ec6] font-bold text-sm uppercase tracking-[0.15em] hover:bg-[#ff70a6]/20 transition-all duration-200">
                 Play
               </button>
-              <p className="text-zinc-600 text-xs tracking-widest">Space / ↑ to jump · ↓ to duck · Press P to close</p>
             </div>
           )}
         </div>
@@ -1849,26 +1838,25 @@ export function PongGame() {
           <div className="flex gap-4 mt-4 flex-wrap justify-center">
             <button
               onClick={() => arcadeGame === 'pong' ? (mode === '2player' ? startTwoPlayer() : startGame(difficulty)) : startInvaders()}
-              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
+              className="cursor-pointer px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
             >
               {arcadeGame === 'pong' ? 'Rematch' : 'Retry'}
             </button>
             <button
               onClick={() => { setGameState('menu'); setWinner(null); setInvaderOutcome(null); }}
-              className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
+              className="cursor-pointer px-8 py-3 rounded-xl border-2 border-dashed border-zinc-700 bg-transparent text-white font-bold text-sm uppercase tracking-[0.15em] hover:border-white hover:bg-white/5 transition-all duration-200"
             >
               Menu
             </button>
             {arcadeGame === 'invaders' && (
               <button
                 onClick={() => setStoreOpen(true)}
-                className="cursor-target px-8 py-3 rounded-xl border-2 border-dashed border-emerald-700 bg-transparent text-emerald-300 font-bold text-sm uppercase tracking-[0.15em] hover:border-emerald-300 hover:bg-emerald-300/10 transition-all duration-200"
+                className="cursor-pointer px-8 py-3 rounded-xl border-2 border-dashed border-emerald-700 bg-transparent text-emerald-300 font-bold text-sm uppercase tracking-[0.15em] hover:border-emerald-300 hover:bg-emerald-300/10 transition-all duration-200"
               >
                 Store
               </button>
             )}
           </div>
-          <p className="text-zinc-600 text-xs tracking-widest mt-2">Press P to close</p>
         </div>
       )}
 
