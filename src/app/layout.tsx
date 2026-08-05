@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -6,6 +6,11 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://devsanghavi.com"),

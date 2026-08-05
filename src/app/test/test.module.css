@@ -5,12 +5,6 @@
   background: #ffffff;
 }
 
-.aboutPage {
-  height: 125svh;
-  min-height: 0;
-  overflow: hidden;
-}
-
 .topBar {
   position: relative;
   display: flex;
@@ -111,8 +105,8 @@
 }
 
 .aboutFrame {
-  overflow: hidden;
-  overscroll-behavior: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .aboutFrame .aboutSection {

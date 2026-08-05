@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main className={`${styles.page} ${styles.aboutPage}`}>
+    <main className={styles.page}>
       <TestNav active="about" />
 
       <div className={`${styles.frame} ${styles.aboutFrame}`}>

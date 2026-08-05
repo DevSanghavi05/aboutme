@@ -10,6 +10,14 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: only light;
+  }
+
+  html {
+    background: #ffffff;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
