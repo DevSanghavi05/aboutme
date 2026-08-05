@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PacManGame } from "@/components/PacManGame";
 import { DinoGame } from "@/components/DinoGame";
-import { PONG_DIFFICULTY_SETTINGS, PONG_WIN_SCORE } from "@/lib/pongSettings";
+import {
+  getHorizontalPaddleImpact,
+  PONG_DIFFICULTY_SETTINGS,
+  PONG_WIN_SCORE,
+} from "@/lib/pongSettings";
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
@@ -858,11 +862,10 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
         ctx.restore();
       };
 
-      const drawBoss = (boss: Boss, now: number) => {
+      const drawBoss = (boss: Boss) => {
         const { x, y, width: bw, height: bh, hp, maxHp, phase } = boss;
         const cx = x + bw / 2;
         const hpPct = hp / maxHp;
-        const pulse = 0.85 + 0.15 * Math.sin(now * 0.006);
         const isP2 = phase === 2;
 
         ctx.save();
@@ -1276,7 +1279,7 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
 
         // Boss
         const bossDrawn = bossRef.current;
-        if (bossDrawn) drawBoss(bossDrawn, now);
+        if (bossDrawn) drawBoss(bossDrawn);
 
         // Enemies
         for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i], now);
@@ -1586,6 +1589,8 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
         cpu.x = Math.max(0, Math.min(cpu.x, canvas.width - cpu.width));
       }
 
+      const previousBallX = ball.x;
+      const previousBallY = ball.y;
       ball.x += ball.dx; ball.y += ball.dy;
       const curSpeedGain = modeRef.current === '2player' ? 0.9 : settings.speedGain;
       const curMaxSpeed  = modeRef.current === '2player' ? 40  : settings.maxSpeed;
@@ -1612,16 +1617,20 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
       } else {
         if (ball.x < ball.size / 2)                  { ball.dx =  Math.abs(ball.dx); ball.x = ball.size / 2; }
         if (ball.x > canvas.width - ball.size / 2)   { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.size / 2; }
-        if (checkPaddleCollision(player.x, player.y, player.width, player.height, ball.dy > 0)) {
-          const hitPoint = (ball.x - (player.x + player.width / 2)) / (player.width / 2);
+        const playerImpact = getHorizontalPaddleImpact(previousBallX, previousBallY, ball.x, ball.y, ball.size / 2, player, true);
+        if (playerImpact !== null) {
+          ball.x = playerImpact;
+          const hitPoint = Math.max(-1, Math.min(1, (playerImpact - (player.x + player.width / 2)) / (player.width / 2)));
           let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           if (difficulty === 'impossible') { const rG = curSpeedGain + hitCountRef.current * 0.25; const rM = curMaxSpeed + hitCountRef.current * 3; speed = Math.min(speed + rG, rM); hitCountRef.current++; } else { speed = Math.min(speed + curSpeedGain, curMaxSpeed); }
           const angle = hitPoint * (Math.PI / 3);
           ball.dx = Math.sin(angle) * speed; ball.dy = -Math.cos(angle) * speed;
           ball.y = player.y - ball.size / 2;
         }
-        if (checkPaddleCollision(cpu.x, cpu.y, cpu.width, cpu.height, ball.dy < 0)) {
-          const hitPoint = (ball.x - (cpu.x + cpu.width / 2)) / (cpu.width / 2);
+        const cpuImpact = getHorizontalPaddleImpact(previousBallX, previousBallY, ball.x, ball.y, ball.size / 2, cpu, false);
+        if (cpuImpact !== null) {
+          ball.x = cpuImpact;
+          const hitPoint = Math.max(-1, Math.min(1, (cpuImpact - (cpu.x + cpu.width / 2)) / (cpu.width / 2)));
           let speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
           if (difficulty === 'impossible') { const rG = curSpeedGain + hitCountRef.current * 0.25; const rM = curMaxSpeed + hitCountRef.current * 3; speed = Math.min(speed + rG, rM); hitCountRef.current++; } else { speed = Math.min(speed + curSpeedGain, curMaxSpeed); }
           const angle = hitPoint * (Math.PI / 3);

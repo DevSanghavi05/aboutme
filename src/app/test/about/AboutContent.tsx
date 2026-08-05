@@ -19,7 +19,7 @@ export function AboutContent() {
 
         <div className={styles.aboutCopy}>
           <p className={styles.aboutLead}>
-            Hi! I&apos;m Dev Sanghavi, the founder of Learnr 😎.
+            Hi! I&apos;m Dev Sanghavi, a 7th grader from Houston, TX 😎.
           </p>
           <p>
             I focus on creating high-impact systems ⚡, mostly in consumer
@@ -30,7 +30,7 @@ export function AboutContent() {
             , a platform that turns user prompts into full, personalized courses.
           </p>
           <p>
-            Outside of building, I love learning languages, with a ~1,000-day
+            Outside of building, I love learning languages, with a 1000+ day
             Duolingo streak 🔥. I&apos;m fluent in 3 languages 🗣️ and learning a
             fourth.
           </p>

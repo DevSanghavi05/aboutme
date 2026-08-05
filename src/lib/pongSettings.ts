@@ -6,3 +6,40 @@ export const PONG_DIFFICULTY_SETTINGS = {
 } as const;
 
 export const PONG_WIN_SCORE = 5;
+
+type HorizontalPaddle = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export function getHorizontalPaddleImpact(
+  previousX: number,
+  previousY: number,
+  nextX: number,
+  nextY: number,
+  radius: number,
+  paddle: HorizontalPaddle,
+  movingDown: boolean,
+): number | null {
+  const movementY = nextY - previousY;
+  if ((movingDown && movementY <= 0) || (!movingDown && movementY >= 0)) return null;
+
+  const collisionY = movingDown
+    ? paddle.y - radius
+    : paddle.y + paddle.height + radius;
+  const crossedFace = movingDown
+    ? previousY <= collisionY && nextY >= collisionY
+    : previousY >= collisionY && nextY <= collisionY;
+
+  if (!crossedFace) return null;
+
+  const travel = collisionY - previousY;
+  const time = travel / movementY;
+  const impactX = previousX + (nextX - previousX) * time;
+  const leftEdge = paddle.x - radius;
+  const rightEdge = paddle.x + paddle.width + radius;
+
+  return impactX >= leftEdge && impactX <= rightEdge ? impactX : null;
+}

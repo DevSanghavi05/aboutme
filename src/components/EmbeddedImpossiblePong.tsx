@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PONG_DIFFICULTY_SETTINGS, PONG_WIN_SCORE } from "@/lib/pongSettings";
+import {
+  getHorizontalPaddleImpact,
+  PONG_DIFFICULTY_SETTINGS,
+  PONG_WIN_SCORE,
+} from "@/lib/pongSettings";
 
 const WIN_SCORE = PONG_WIN_SCORE;
 const IMPOSSIBLE = PONG_DIFFICULTY_SETTINGS.impossible;
@@ -95,15 +99,6 @@ export function EmbeddedImpossiblePong() {
     const resetAfterPoint = () => {
       if (playerScore >= WIN_SCORE || cpuScore >= WIN_SCORE) gameOver = true;
       centerBall();
-    };
-
-    const paddleHit = (paddle: Paddle, movingDown: boolean) => {
-      if ((movingDown && ball.dy <= 0) || (!movingDown && ball.dy >= 0)) return false;
-      const closestX = Math.max(paddle.x, Math.min(ball.x, paddle.x + paddle.width));
-      const closestY = Math.max(paddle.y, Math.min(ball.y, paddle.y + paddle.height));
-      const dx = ball.x - closestX;
-      const dy = ball.y - closestY;
-      return dx * dx + dy * dy <= ball.radius * ball.radius;
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -219,6 +214,8 @@ export function EmbeddedImpossiblePong() {
       player.x = Math.max(0, Math.min(player.x, width - player.width));
 
       if (!waitingForServe) {
+        const previousBallX = ball.x;
+        const previousBallY = ball.y;
         ball.x += ball.dx * frameScale;
         ball.y += ball.dy * frameScale;
 
@@ -237,8 +234,18 @@ export function EmbeddedImpossiblePong() {
         else if (cpuDelta < -4) cpu.x -= Math.min(cpuStep, -cpuDelta);
         cpu.x = Math.max(0, Math.min(cpu.x, width - cpu.width));
 
-        if (paddleHit(player, true)) {
-          const offset = (ball.x - (player.x + player.width / 2)) / (player.width / 2);
+        const playerImpact = getHorizontalPaddleImpact(
+          previousBallX,
+          previousBallY,
+          ball.x,
+          ball.y,
+          ball.radius,
+          player,
+          true,
+        );
+        if (playerImpact !== null) {
+          ball.x = playerImpact;
+          const offset = Math.max(-1, Math.min(1, (playerImpact - (player.x + player.width / 2)) / (player.width / 2)));
           const speedGain = IMPOSSIBLE.speedGain + hitCount * 0.25;
           const maxSpeed = IMPOSSIBLE.maxSpeed + hitCount * 3;
           const speed = Math.min(Math.hypot(ball.dx, ball.dy) + speedGain, maxSpeed);
@@ -249,8 +256,18 @@ export function EmbeddedImpossiblePong() {
           hitCount += 1;
         }
 
-        if (paddleHit(cpu, false)) {
-          const offset = (ball.x - (cpu.x + cpu.width / 2)) / (cpu.width / 2);
+        const cpuImpact = getHorizontalPaddleImpact(
+          previousBallX,
+          previousBallY,
+          ball.x,
+          ball.y,
+          ball.radius,
+          cpu,
+          false,
+        );
+        if (cpuImpact !== null) {
+          ball.x = cpuImpact;
+          const offset = Math.max(-1, Math.min(1, (cpuImpact - (cpu.x + cpu.width / 2)) / (cpu.width / 2)));
           const speedGain = IMPOSSIBLE.speedGain + hitCount * 0.25;
           const maxSpeed = IMPOSSIBLE.maxSpeed + hitCount * 3;
           const speed = Math.min(Math.hypot(ball.dx, ball.dy) + speedGain, maxSpeed);
