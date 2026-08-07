@@ -108,12 +108,12 @@ export function EmbeddedImpossiblePong() {
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
         keys.left = true;
         pointerActive = false;
         event.preventDefault();
       }
-      if (event.key === "ArrowRight") {
+      if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
         keys.right = true;
         pointerActive = false;
         event.preventDefault();
@@ -125,8 +125,8 @@ export function EmbeddedImpossiblePong() {
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") keys.left = false;
-      if (event.key === "ArrowRight") keys.right = false;
+      if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") keys.left = false;
+      if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") keys.right = false;
     };
 
     const onPointerDown = () => {
