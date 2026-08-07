@@ -1496,8 +1496,8 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft')           { keysRef.current.left  = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
-      if (e.key === 'ArrowRight')          { keysRef.current.right = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
+      if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { keysRef.current.left  = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keysRef.current.right = true; inputModeRef.current = 'keyboard'; e.preventDefault(); }
       if (e.key === 'w' || e.key === 'W') { keysRef.current.up    = true; e.preventDefault(); }
       if (e.key === 's' || e.key === 'S') { keysRef.current.down  = true; e.preventDefault(); }
       if (e.key === 'ArrowUp')             { keys2Ref.current.up   = true; e.preventDefault(); }
@@ -1506,8 +1506,8 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft')           keysRef.current.left  = false;
-      if (e.key === 'ArrowRight')          keysRef.current.right = false;
+      if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') keysRef.current.left  = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysRef.current.right = false;
       if (e.key === 'w' || e.key === 'W') keysRef.current.up    = false;
       if (e.key === 's' || e.key === 'S') keysRef.current.down  = false;
       if (e.key === 'ArrowUp')             keys2Ref.current.up   = false;
