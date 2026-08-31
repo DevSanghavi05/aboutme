@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PacManGame } from "@/components/PacManGame";
 import { DinoGame } from "@/components/DinoGame";
+import { BlasterDuel } from "@/components/BlasterDuel";
 import {
   getHorizontalPaddleImpact,
   PONG_DIFFICULTY_SETTINGS,
@@ -11,7 +12,7 @@ import {
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 type Mode = 'solo' | '2player';
-type ArcadeGame = 'pong' | 'invaders' | 'pacman' | 'dino';
+type ArcadeGame = 'pong' | 'invaders' | 'pacman' | 'dino' | 'blaster';
 type InvaderOutcome = 'victory' | 'defeat' | null;
 type BulletType = 'machinegun' | 'bazooka' | 'electric';
 
@@ -361,6 +362,12 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
     setGameState('playing');
   }, []);
 
+  const startBlaster = useCallback(() => {
+    setArcadeGame('blaster');
+    setStoreOpen(false);
+    setGameState('playing');
+  }, []);
+
   const toggleFullscreen = useCallback(async () => {
     try {
       if (document.fullscreenElement) {
@@ -547,7 +554,7 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
 
   // ── Game loop ──
   useEffect(() => {
-    if (!isOpen || gameState !== 'playing' || arcadeGame === 'pacman' || arcadeGame === 'dino') {
+    if (!isOpen || gameState !== 'playing' || arcadeGame === 'pacman' || arcadeGame === 'dino' || arcadeGame === 'blaster') {
       document.body.style.overflow = isOpen ? 'hidden' : '';
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       return;
@@ -1752,6 +1759,9 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
             <button onClick={() => setArcadeGame('dino')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'dino' ? 'border-[#ff70a6] text-[#ff70a6] bg-[#ff70a6]/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
               Dino Run
             </button>
+            <button onClick={() => setArcadeGame('blaster')} className={`cursor-pointer px-5 py-2 rounded-lg border text-xs font-bold tracking-[0.12em] uppercase transition ${arcadeGame === 'blaster' ? 'border-[#5b8bff] text-[#5b8bff] bg-[#5b8bff]/10' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+              Blaster Duel
+            </button>
           </div>
 
           {arcadeGame === 'pong' && (
@@ -1815,11 +1825,23 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
               </button>
             </div>
           )}
+
+          {arcadeGame === 'blaster' && (
+            <div className="flex flex-col items-center gap-5">
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.14em] text-[#5b8bff]">Blaster Duel</h2>
+              <p className="text-zinc-400 text-sm tracking-wide text-center max-w-sm">
+                Battle AI rivals through escalating levels with an upgrade shop, or duel a real player online. Move with WASD, aim locks on automatically, so just dodge, take cover, and blast.
+              </p>
+              <button onClick={startBlaster} className="cursor-pointer px-10 py-3 rounded-xl border-2 border-dashed border-[#5b8bff]/70 bg-[#5b8bff]/10 text-[#9db8ff] font-bold text-sm uppercase tracking-[0.15em] hover:bg-[#5b8bff]/20 transition-all duration-200">
+                Play
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Playing */}
-      {gameState === 'playing' && arcadeGame !== 'pacman' && (
+      {gameState === 'playing' && arcadeGame !== 'pacman' && arcadeGame !== 'blaster' && (
         <>
           <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full cursor-none" />
         </>
@@ -1829,6 +1851,11 @@ export function PongGame({ openByDefault = false }: { openByDefault?: boolean })
       )}
       {gameState === 'playing' && arcadeGame === 'dino' && (
         <DinoGame onMenu={() => { setGameState('menu'); }} />
+      )}
+      {gameState === 'playing' && arcadeGame === 'blaster' && (
+        <div className="absolute inset-0 flex items-center justify-center px-4">
+          <BlasterDuel onExit={() => { setGameState('menu'); }} />
+        </div>
       )}
 
       {/* Game Over */}

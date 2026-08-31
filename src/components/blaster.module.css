@@ -1,0 +1,644 @@
+.root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
+  max-height: min(78vh, 620px);
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #1e2024;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  touch-action: none;
+  user-select: none;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- Full-screen overlays (menu / searching / result) ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: rgba(22, 24, 28, 0.9);
+  backdrop-filter: blur(5px);
+  z-index: 5;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  color: #eaf0ff;
+  max-width: 460px;
+  width: 100%;
+  animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.logo {
+  font-size: clamp(2.4rem, 7vw, 3.8rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  margin: 0;
+  color: #fff;
+}
+.logoBlast {
+  color: #5b8bff;
+}
+.logoDuel {
+  color: #ff7a52;
+}
+
+.tagline {
+  margin: -6px 0 6px;
+  font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+  color: #aebbdd;
+  font-weight: 450;
+}
+
+.btnPrimary {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  font-size: 1.08rem;
+  color: #fff;
+  padding: 14px 34px;
+  border-radius: 12px;
+  background: #2f6bff;
+  box-shadow: 0 10px 24px -10px rgba(47, 107, 255, 0.9);
+  transition: transform 0.12s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+.btnPrimary:hover {
+  background: #4079ff;
+}
+.btnPrimary:active {
+  transform: scale(0.97);
+}
+.btnPrimary:focus-visible {
+  outline: 3px solid #9db8ff;
+  outline-offset: 2px;
+}
+
+.btnGhost {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: #cdd8f5;
+  padding: 11px 24px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: transform 0.12s ease, background 0.16s ease, border-color 0.16s ease;
+}
+.btnGhost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.btnGhost:active {
+  transform: scale(0.97);
+}
+.btnGhost:focus-visible {
+  outline: 3px solid #9db8ff;
+  outline-offset: 2px;
+}
+
+.btnRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: #9fb0d6;
+}
+.controls b {
+  color: #dbe4fb;
+  font-weight: 650;
+}
+.kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom-width: 2px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #eaf0ff;
+}
+
+/* ---------- Searching ---------- */
+.spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.14);
+  border-top-color: #5b8bff;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Result screen ---------- */
+.resultTitle {
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1;
+}
+.win {
+  color: #5cff9d;
+}
+.lose {
+  color: #ff7a7a;
+}
+.resultScore {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #dbe4fb;
+  letter-spacing: 0.02em;
+}
+.resultSub {
+  color: #aebbdd;
+  margin-top: -6px;
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(10px, 2.2vw, 18px);
+}
+
+.hudTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hudSide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(38%, 300px);
+}
+.hudSide.right {
+  align-items: flex-end;
+}
+.hudName {
+  font-size: clamp(0.72rem, 1.8vw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #eaf0ff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.healthTrack {
+  width: 100%;
+  height: clamp(10px, 1.8vw, 14px);
+  border-radius: 8px;
+  background: rgba(6, 10, 22, 0.55);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.healthFill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.18s ease-out;
+}
+.healthFill.me {
+  background: #4b8bff;
+}
+.healthFill.foe {
+  background: #ff6f45;
+}
+
+.pips {
+  display: flex;
+  gap: 5px;
+}
+.pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.pip.onMe {
+  background: #5b8bff;
+}
+.pip.onFoe {
+  background: #ff7a52;
+}
+
+.roundBadge {
+  align-self: center;
+  text-align: center;
+  color: #dbe4fb;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: clamp(0.7rem, 1.7vw, 0.86rem);
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  background: rgba(8, 12, 24, 0.4);
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hudBottom {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.ammo {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  background: rgba(8, 12, 24, 0.42);
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ammoCell {
+  width: clamp(10px, 1.6vw, 13px);
+  height: clamp(18px, 2.8vw, 24px);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ammoCell.filled {
+  background: #4a9bff;
+}
+.reloadLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffd36a;
+}
+
+/* ---------- Countdown + banners ---------- */
+.centerOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+.countdown {
+  font-size: clamp(5rem, 20vw, 11rem);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  animation: pop 0.5s ease both;
+}
+.fight {
+  font-size: clamp(3rem, 12vw, 7rem);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  color: #5cff9d;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+  animation: pop 0.4s ease both;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+.banner {
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding: 14px 34px;
+  border-radius: 16px;
+  background: rgba(8, 12, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  animation: pop 0.4s ease both;
+}
+.bannerWin {
+  color: #5cff9d;
+}
+.bannerLose {
+  color: #ff9d9d;
+}
+
+/* ---------- Corner chrome ---------- */
+.exitBtn {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  z-index: 6;
+  pointer-events: auto;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #cdd8f5;
+  padding: 7px 13px;
+  border-radius: 9px;
+  background: rgba(8, 12, 24, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: background 0.15s ease;
+}
+.exitBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.corner {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.iconBtn {
+  pointer-events: auto;
+  appearance: none;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #cdd8f5;
+  background: rgba(8, 12, 24, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: background 0.15s ease;
+}
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.latency {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #8fa1c8;
+  background: rgba(8, 12, 24, 0.5);
+  padding: 5px 9px;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Touch joysticks ---------- */
+.stickBase {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  margin: -54px 0 0 -54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  z-index: 4;
+  pointer-events: none;
+}
+.stickKnob {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: rgba(120, 160, 255, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.touchHint {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(205, 216, 245, 0.7);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.footNote {
+  font-size: 0.82rem;
+  color: #7a889f;
+  text-align: center;
+  max-width: 640px;
+}
+.footNote a {
+  color: #2864f0;
+  font-weight: 600;
+}
+
+/* ---------- Campaign HUD ---------- */
+.hudCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.coinHud {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: clamp(0.72rem, 1.7vw, 0.86rem);
+  font-weight: 700;
+  color: #ffd36a;
+  background: rgba(8, 12, 24, 0.4);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.coinHud svg {
+  color: #ffd36a;
+}
+
+.countStack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.levelLabel {
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #cdd8f5;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Campaign shop ---------- */
+.shopPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90%;
+  overflow-y: auto;
+  color: #eaf0ff;
+  text-align: left;
+  animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.shopHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.shopTitle {
+  margin: 0;
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+.coinPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #ffd36a;
+  background: rgba(8, 12, 24, 0.5);
+  border: 1px solid rgba(255, 210, 100, 0.3);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.coinPill svg {
+  color: #ffd36a;
+}
+.shopSub {
+  margin: -6px 0 2px;
+  font-size: 0.9rem;
+  color: #aebbdd;
+}
+.shopGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 10px;
+}
+.shopCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.shopCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shopCardName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #eaf0ff;
+}
+.levelDots {
+  display: inline-flex;
+  gap: 3px;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.dotOn {
+  background: #5b8bff;
+}
+.shopCardDesc {
+  flex: 1;
+  font-size: 0.78rem;
+  line-height: 1.32;
+  color: #9fb0d6;
+}
+.buyBtn {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.86rem;
+  color: #ffffff;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 9px;
+  background: #2f6bff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.buyBtn svg {
+  color: #ffe08a;
+}
+.buyBtn:hover:not(:disabled) {
+  background: #4079ff;
+}
+.buyBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.buyBtn:disabled {
+  cursor: default;
+  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.14);
+}

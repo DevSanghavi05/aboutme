@@ -5,7 +5,7 @@ import { TestNav } from "../test/TestNav";
 import styles from "../test/test.module.css";
 
 export const metadata: Metadata = {
-  title: "Play — Dev Sanghavi",
+  title: "Play - Dev Sanghavi",
   description: "Play Dev Sanghavi's mini arcade.",
 };
 
