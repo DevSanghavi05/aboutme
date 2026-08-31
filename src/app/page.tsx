@@ -7,8 +7,8 @@ import { TestNav } from "./test/TestNav";
 import styles from "./test/test.module.css";
 
 export const metadata: Metadata = {
-  title: "Dev Sanghavi — Founder of Learnr",
-  description: "Meet Dev Sanghavi, founder of Learnr.",
+  title: "Dev Sanghavi - Founder of Learnr",
+  description: "Dev Sanghavi is a 12-year-old developer and creator from Houston, TX, and the founder of Learnr. See what he's building.",
 };
 
 export default async function HomePage() {
