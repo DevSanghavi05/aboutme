@@ -51,12 +51,12 @@ export function resolveCircleRect(px, py, r, rect) {
  * @param {{minX:number,minY:number,maxX:number,maxY:number}} bounds
  * @returns {{x:number,y:number}}
  */
-export function resolveBody(px, py, r, bounds) {
+export function resolveBody(px, py, r, bounds, obstacles = OBSTACLES) {
   let x = clamp(px, bounds.minX + r, bounds.maxX - r);
   let y = clamp(py, bounds.minY + r, bounds.maxY - r);
   for (let iter = 0; iter < 2; iter++) {
-    for (let i = 0; i < OBSTACLES.length; i++) {
-      const res = resolveCircleRect(x, y, r, OBSTACLES[i]);
+    for (let i = 0; i < obstacles.length; i++) {
+      const res = resolveCircleRect(x, y, r, obstacles[i]);
       x = res.x;
       y = res.y;
     }
@@ -67,9 +67,9 @@ export function resolveBody(px, py, r, bounds) {
 }
 
 /** True if the point (with radius) overlaps any obstacle. */
-export function pointHitsObstacle(px, py, r) {
-  for (let i = 0; i < OBSTACLES.length; i++) {
-    const rect = OBSTACLES[i];
+export function pointHitsObstacle(px, py, r, obstacles = OBSTACLES) {
+  for (let i = 0; i < obstacles.length; i++) {
+    const rect = obstacles[i];
     const nx = clamp(px, rect.x, rect.x + rect.w);
     const ny = clamp(py, rect.y, rect.y + rect.h);
     const dx = px - nx;
@@ -119,9 +119,9 @@ export function segmentHitsRect(x1, y1, x2, y2, rect) {
 }
 
 /** True if a straight line between two points is blocked by any obstacle. */
-export function lineBlocked(x1, y1, x2, y2) {
-  for (let i = 0; i < OBSTACLES.length; i++) {
-    if (segmentHitsRect(x1, y1, x2, y2, OBSTACLES[i])) return true;
+export function lineBlocked(x1, y1, x2, y2, obstacles = OBSTACLES) {
+  for (let i = 0; i < obstacles.length; i++) {
+    if (segmentHitsRect(x1, y1, x2, y2, obstacles[i])) return true;
   }
   return false;
 }

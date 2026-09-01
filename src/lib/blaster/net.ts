@@ -8,6 +8,7 @@
 import {
   MSG,
   NET,
+  OBSTACLES,
   PHASE,
   PLAYER,
   type GameEvent,
@@ -24,7 +25,9 @@ export interface RenderState {
   mySeat: Seat;
   me: PlayerState;
   foe: PlayerState;
+  extraFoes?: PlayerState[];
   projectiles: Projectile[];
+  obstacles: { x: number; y: number; w: number; h: number }[];
   phase: string;
   round: number;
   bestOf: number;
@@ -270,6 +273,7 @@ export class NetClient {
       me,
       foe,
       projectiles,
+      obstacles: OBSTACLES,
       phase: snap.phase,
       round: snap.round,
       bestOf: snap.bestOf,

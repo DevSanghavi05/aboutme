@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Volume2, VolumeX, Coins } from "lucide-react";
 import { NetClient, type RenderState } from "@/lib/blaster/net";
 import { Renderer } from "@/lib/blaster/render";
@@ -20,7 +20,7 @@ import {
 } from "@/lib/blaster/protocol";
 import styles from "./blaster.module.css";
 
-type Screen = "loading" | "menu" | "searching" | "match" | "result" | "gone" | "error" | "campaign";
+type Screen = "loading" | "menu" | "searching" | "match" | "result" | "gone" | "error" | "campaign" | "shop";
 
 interface Hud {
   phase: string;
@@ -42,6 +42,7 @@ interface CampaignHud {
   coins: number;
   upgrades: Upgrades;
   phase: string;
+  rivalCount: number;
   countdownMs: number;
   meHp: number;
   meMaxHp: number;
@@ -75,6 +76,7 @@ const EMPTY_CAMPAIGN_HUD: CampaignHud = {
   coins: 0,
   upgrades: EMPTY_UPGRADES,
   phase: "countdown",
+  rivalCount: 1,
   countdownMs: 3000,
   meHp: MAX_HP,
   meMaxHp: MAX_HP,
@@ -158,6 +160,11 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
   const [latency, setLatency] = useState<number | null>(null);
   const [hud, setHud] = useState<Hud>(EMPTY_HUD);
   const [chud, setChud] = useState<CampaignHud>(EMPTY_CAMPAIGN_HUD);
+  const [shopView, setShopView] = useState<{ level: number; coins: number; upgrades: Upgrades }>({
+    level: 1,
+    coins: 0,
+    upgrades: EMPTY_UPGRADES,
+  });
 
   const screenRef = useRef(screen);
   screenRef.current = screen;
@@ -460,6 +467,36 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
     setScreen("campaign");
   }, []);
 
+  const openShop = useCallback(() => {
+    soundRef.current?.ensureStarted();
+    soundRef.current?.uiClick();
+    setShopView(loadProgress());
+    setScreen("shop");
+  }, []);
+
+  const buyShopUpgrade = useCallback((key: UpgradeKey) => {
+    setShopView((prev) => {
+      const lvl = prev.upgrades[key] || 0;
+      if (lvl >= CAMPAIGN.maxUpgradeLevel) {
+        soundRef.current?.empty();
+        return prev;
+      }
+      const cost = CAMPAIGN.upgrades[key].baseCost + CAMPAIGN.upgrades[key].step * lvl;
+      if (prev.coins < cost) {
+        soundRef.current?.empty();
+        return prev;
+      }
+      soundRef.current?.uiClick();
+      const next = { level: prev.level, coins: prev.coins - cost, upgrades: { ...prev.upgrades, [key]: lvl + 1 } };
+      try {
+        localStorage.setItem(CAMPAIGN_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
   const cancelSearch = useCallback(() => {
     soundRef.current?.uiClick();
     netRef.current?.cancel();
@@ -608,7 +645,9 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
               </div>
 
               <div className={`${styles.hudSide} ${styles.right}`}>
-                <div className={styles.hudName}>Rival Lv.{chud.level}</div>
+                <div className={styles.hudName}>
+                  {chud.rivalCount > 1 ? `Rivals ×${chud.rivalCount}` : `Rival Lv.${chud.level}`}
+                </div>
                 <div className={styles.healthTrack}>
                   <div className={`${styles.healthFill} ${styles.foe}`} style={{ width: pct(chud.rivalHp, chud.rivalMaxHp) }} />
                 </div>
@@ -656,83 +695,70 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
           <div className={styles.touchHint}>Left: move · Right: hold to fire</div>
         )}
 
-        {/* Campaign shop / level-clear / defeat / complete */}
+        {/* Levels shop / level-clear / defeat / complete */}
         {shopPhase && (
           <div className={styles.overlay}>
-            <div className={styles.shopPanel}>
-              <div className={styles.shopHead}>
-                <h2 className={styles.shopTitle}>
-                  {chud.phase === "levelClear" && `Level ${chud.level} cleared`}
-                  {chud.phase === "dead" && `Defeated · Level ${chud.level}`}
-                  {chud.phase === "won" && "All levels complete"}
-                </h2>
-                <div className={styles.coinPill}>
-                  <Coins size={15} /> {chud.coins}
-                </div>
-              </div>
-              <p className={styles.shopSub}>
-                {chud.phase === "levelClear" && "Spend your coins, then take on the next rival."}
-                {chud.phase === "dead" && "Upgrade your fighter and try the level again."}
-                {chud.phase === "won" && `You beat all ${chud.totalLevels} rivals. Start over with your upgrades kept.`}
-              </p>
-
-              <div className={styles.shopGrid}>
-                {UPGRADE_ORDER.map((key) => {
-                  const meta = CAMPAIGN.upgrades[key];
-                  const lvl = chud.upgrades[key as UpgradeKey] || 0;
-                  const maxed = lvl >= CAMPAIGN.maxUpgradeLevel;
-                  const cost = meta.baseCost + meta.step * lvl;
-                  const afford = chud.coins >= cost;
-                  return (
-                    <div key={key} className={styles.shopCard}>
-                      <div className={styles.shopCardTop}>
-                        <span className={styles.shopCardName}>{meta.label}</span>
-                        <span className={styles.levelDots}>
-                          {Array.from({ length: CAMPAIGN.maxUpgradeLevel }).map((_, i) => (
-                            <span key={i} className={`${styles.dot} ${i < lvl ? styles.dotOn : ""}`} />
-                          ))}
-                        </span>
-                      </div>
-                      <div className={styles.shopCardDesc}>{meta.desc}</div>
-                      <button
-                        className={styles.buyBtn}
-                        disabled={maxed || !afford}
-                        onClick={() => buyUpgrade(key as UpgradeKey)}
-                      >
-                        {maxed ? (
-                          "Maxed"
-                        ) : (
-                          <>
-                            <Coins size={13} /> {cost}
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className={styles.btnRow}>
-                {chud.phase === "levelClear" && (
-                  <button className={styles.btnPrimary} onClick={nextLevel}>
-                    Next level →
-                  </button>
-                )}
-                {chud.phase === "dead" && (
-                  <button className={styles.btnPrimary} onClick={retryLevel}>
-                    Retry level
-                  </button>
-                )}
-                {chud.phase === "won" && (
-                  <button className={styles.btnPrimary} onClick={newCampaign}>
-                    Play again
-                  </button>
-                )}
-                <button className={styles.btnGhost} onClick={campaignToMenu}>
-                  Main menu
+            <ShopPanel
+              title={
+                chud.phase === "levelClear"
+                  ? `Level ${chud.level} cleared`
+                  : chud.phase === "dead"
+                    ? `Defeated · Level ${chud.level}`
+                    : "All levels complete"
+              }
+              subtitle={
+                chud.phase === "levelClear"
+                  ? "Spend your coins, then take on the next rival."
+                  : chud.phase === "dead"
+                    ? "Upgrade your fighter and try the level again."
+                    : `You beat all ${chud.totalLevels} levels. Start over with your upgrades kept.`
+              }
+              coins={chud.coins}
+              upgrades={chud.upgrades}
+              onBuy={buyUpgrade}
+            >
+              {chud.phase === "levelClear" && (
+                <button className={styles.btnPrimary} onClick={nextLevel}>
+                  Next level →
                 </button>
-              </div>
-            </div>
+              )}
+              {chud.phase === "dead" && (
+                <button className={styles.btnPrimary} onClick={retryLevel}>
+                  Retry level
+                </button>
+              )}
+              {chud.phase === "won" && (
+                <button className={styles.btnPrimary} onClick={newCampaign}>
+                  Play again
+                </button>
+              )}
+              <button className={styles.btnGhost} onClick={campaignToMenu}>
+                Main menu
+              </button>
+            </ShopPanel>
+          </div>
+        )}
+
+        {/* Main-menu Shop */}
+        {screen === "shop" && (
+          <div className={styles.overlay}>
+            <ShopPanel
+              title="Upgrade Shop"
+              subtitle="Spend coins earned in Levels. Purchases are saved and carry into every run."
+              coins={shopView.coins}
+              upgrades={shopView.upgrades}
+              onBuy={buyShopUpgrade}
+            >
+              <button
+                className={styles.btnPrimary}
+                onClick={() => {
+                  soundRef.current?.uiClick();
+                  setScreen("menu");
+                }}
+              >
+                Back
+              </button>
+            </ShopPanel>
           </div>
         )}
 
@@ -752,6 +778,9 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
                 </button>
                 <button className={styles.btnPrimary} onClick={startSearch}>
                   Play Online
+                </button>
+                <button className={styles.btnGhost} onClick={openShop}>
+                  Shop
                 </button>
                 <button className={styles.btnGhost} onClick={playBot}>
                   Quick match vs A.I.
@@ -894,6 +923,67 @@ export function BlasterDuel({ onExit }: { onExit?: () => void }) {
   );
 }
 
+// Reusable upgrade shop, used both between levels and from the main menu.
+function ShopPanel({
+  title,
+  subtitle,
+  coins,
+  upgrades,
+  onBuy,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  coins: number;
+  upgrades: Upgrades;
+  onBuy: (key: UpgradeKey) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className={styles.shopPanel}>
+      <div className={styles.shopHead}>
+        <h2 className={styles.shopTitle}>{title}</h2>
+        <div className={styles.coinPill}>
+          <Coins size={15} /> {coins}
+        </div>
+      </div>
+      <p className={styles.shopSub}>{subtitle}</p>
+      <div className={styles.shopGrid}>
+        {UPGRADE_ORDER.map((key) => {
+          const meta = CAMPAIGN.upgrades[key];
+          const lvl = upgrades[key as UpgradeKey] || 0;
+          const maxed = lvl >= CAMPAIGN.maxUpgradeLevel;
+          const cost = meta.baseCost + meta.step * lvl;
+          const afford = coins >= cost;
+          return (
+            <div key={key} className={styles.shopCard}>
+              <div className={styles.shopCardTop}>
+                <span className={styles.shopCardName}>{meta.label}</span>
+                <span className={styles.levelDots}>
+                  {Array.from({ length: CAMPAIGN.maxUpgradeLevel }).map((_, i) => (
+                    <span key={i} className={`${styles.dot} ${i < lvl ? styles.dotOn : ""}`} />
+                  ))}
+                </span>
+              </div>
+              <div className={styles.shopCardDesc}>{meta.desc}</div>
+              <button className={styles.buyBtn} disabled={maxed || !afford} onClick={() => onBuy(key as UpgradeKey)}>
+                {maxed ? (
+                  "Maxed"
+                ) : (
+                  <>
+                    <Coins size={13} /> {cost}
+                  </>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div className={styles.btnRow}>{children}</div>
+    </div>
+  );
+}
+
 // Shared event → sfx/particles dispatch for both online and campaign.
 function dispatchEvents(
   events: GameEvent[],
@@ -925,8 +1015,16 @@ function dispatchEvents(
       }
       case EVENT.DEATH: {
         if (e.seat) {
-          const pos = e.seat === mySeat ? rs?.me : rs?.foe;
-          if (pos) r.deathBurst(pos.x, pos.y, e.seat);
+          let x = e.x;
+          let y = e.y;
+          if (x == null || y == null) {
+            const pos = e.seat === mySeat ? rs?.me : rs?.foe;
+            if (pos) {
+              x = pos.x;
+              y = pos.y;
+            }
+          }
+          if (x != null && y != null) r.deathBurst(x, y, e.seat);
           r.addShake(22);
         }
         break;

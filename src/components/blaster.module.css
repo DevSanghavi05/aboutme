@@ -85,52 +85,57 @@
 
 .btnPrimary {
   appearance: none;
-  border: none;
   cursor: pointer;
   font: inherit;
-  font-weight: 650;
-  font-size: 1.08rem;
-  color: #fff;
-  padding: 14px 34px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+  padding: 13px 30px;
   border-radius: 12px;
-  background: #2f6bff;
-  box-shadow: 0 10px 24px -10px rgba(47, 107, 255, 0.9);
-  transition: transform 0.12s ease, background 0.16s ease, box-shadow 0.16s ease;
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
 }
 .btnPrimary:hover {
-  background: #4079ff;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: #ffffff;
 }
 .btnPrimary:active {
   transform: scale(0.97);
 }
 .btnPrimary:focus-visible {
-  outline: 3px solid #9db8ff;
-  outline-offset: 2px;
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 3px;
 }
 
 .btnGhost {
   appearance: none;
   cursor: pointer;
   font: inherit;
-  font-weight: 600;
-  font-size: 0.98rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: #cdd8f5;
-  padding: 11px 24px;
+  padding: 12px 24px;
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  transition: transform 0.12s ease, background 0.16s ease, border-color 0.16s ease;
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.1s ease, color 0.14s ease;
 }
 .btnGhost:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
 }
 .btnGhost:active {
   transform: scale(0.97);
 }
 .btnGhost:focus-visible {
-  outline: 3px solid #9db8ff;
-  outline-offset: 2px;
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 3px;
 }
 
 .btnRow {
@@ -615,24 +620,27 @@
   appearance: none;
   cursor: pointer;
   font: inherit;
-  font-weight: 650;
-  font-size: 0.86rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: #ffffff;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 9px;
-  background: #2f6bff;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
 }
 .buyBtn svg {
-  color: #ffe08a;
+  color: #ffd36a;
 }
 .buyBtn:hover:not(:disabled) {
-  background: #4079ff;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #ffffff;
 }
 .buyBtn:active:not(:disabled) {
   transform: scale(0.97);
@@ -640,5 +648,4 @@
 .buyBtn:disabled {
   cursor: default;
   opacity: 0.4;
-  background: rgba(255, 255, 255, 0.14);
 }

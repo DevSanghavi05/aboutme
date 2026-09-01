@@ -30,6 +30,42 @@ export const SPAWNS = {
   b: { x: 1150, y: 360, aim: Math.PI },
 };
 
+/**
+ * Alternate arena layouts. Online play always uses MAPS[0] (=== OBSTACLES).
+ * The single-player Levels mode cycles through all of these as you progress.
+ * @type {{x:number,y:number,w:number,h:number}[][]}
+ */
+export const MAPS = [
+  OBSTACLES,
+  // Four corner posts around a central block.
+  [
+    { x: 250, y: 120, w: 74, h: 158 },
+    { x: 956, y: 442, w: 74, h: 158 },
+    { x: 250, y: 442, w: 74, h: 158 },
+    { x: 956, y: 120, w: 74, h: 158 },
+    { x: 560, y: 300, w: 160, h: 120 },
+  ],
+  // Two long ramparts with a center pillar (fight around the ends).
+  [
+    { x: 300, y: 176, w: 680, h: 48 },
+    { x: 300, y: 496, w: 680, h: 48 },
+    { x: 590, y: 300, w: 100, h: 120 },
+  ],
+  // Staggered diagonal pillars.
+  [
+    { x: 180, y: 280, w: 80, h: 160 },
+    { x: 1020, y: 280, w: 80, h: 160 },
+    { x: 470, y: 150, w: 80, h: 150 },
+    { x: 730, y: 420, w: 80, h: 150 },
+    { x: 600, y: 330, w: 80, h: 80 },
+  ],
+];
+
+/** Obstacle layout for a given Levels-mode level (1-indexed). */
+export function mapForLevel(level) {
+  return MAPS[(Math.max(1, level) - 1) % MAPS.length];
+}
+
 export const PLAYER = {
   radius: 22,
   speed: 340, // px per second

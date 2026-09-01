@@ -6,7 +6,9 @@
 
 import { ARENA, BLASTER, OBSTACLES, PLAYER } from "./protocol";
 import type { RenderState } from "./net";
-import type { Seat } from "./protocol";
+import type { PlayerState, Seat } from "./protocol";
+
+type Obstacle = { x: number; y: number; w: number; h: number };
 
 const COLORS = {
   me: "#4b8bff",
@@ -216,7 +218,7 @@ export class Renderer {
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
     this.drawArena({ bounds: { minX: 0, minY: 0, maxX: ARENA.width, maxY: ARENA.height } } as RenderState);
-    this.drawObstacles();
+    this.drawObstacles(OBSTACLES);
     ctx.restore();
   }
 
@@ -239,10 +241,13 @@ export class Renderer {
     ctx.scale(scale, scale);
 
     this.drawArena(state);
-    this.drawObstacles();
+    this.drawObstacles(state.obstacles);
     this.drawProjectiles(state);
-    this.drawPlayer(state, "foe");
-    this.drawPlayer(state, "me");
+    this.drawPlayer(state.foe, "foe", state.mySeat);
+    if (state.extraFoes) {
+      for (const f of state.extraFoes) this.drawPlayer(f, "foe", state.mySeat);
+    }
+    this.drawPlayer(state.me, "me", state.mySeat);
     this.drawParticles();
 
     ctx.restore();
@@ -256,23 +261,18 @@ export class Renderer {
     ctx.roundRect(0, 0, ARENA.width, ARENA.height, 16);
     ctx.fill();
 
-    // Subtle grid.
+    // Subtle diagonal stripes.
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(0, 0, ARENA.width, ARENA.height, 16);
     ctx.clip();
-    ctx.strokeStyle = "rgba(255,255,255,0.05)";
-    ctx.lineWidth = 1.5;
-    for (let x = 0; x <= ARENA.width; x += 80) {
+    ctx.strokeStyle = "#383b42";
+    const stripe = 56;
+    ctx.lineWidth = stripe;
+    for (let i = -ARENA.height; i < ARENA.width; i += stripe * 2) {
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, ARENA.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= ARENA.height; y += 80) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(ARENA.width, y);
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + ARENA.height, ARENA.height);
       ctx.stroke();
     }
     ctx.restore();
@@ -299,9 +299,9 @@ export class Renderer {
     }
   }
 
-  private drawObstacles() {
+  private drawObstacles(obstacles: Obstacle[]) {
     const ctx = this.ctx;
-    for (const o of OBSTACLES) {
+    for (const o of obstacles) {
       ctx.beginPath();
       ctx.roundRect(o.x, o.y, o.w, o.h, 8);
       ctx.fillStyle = "#474b54";
@@ -342,10 +342,9 @@ export class Renderer {
     }
   }
 
-  private drawPlayer(state: RenderState, which: "me" | "foe") {
+  private drawPlayer(player: PlayerState, which: "me" | "foe", mySeat: Seat) {
     const ctx = this.ctx;
-    const player = which === "me" ? state.me : state.foe;
-    const seat: Seat = which === "me" ? state.mySeat : state.mySeat === "a" ? "b" : "a";
+    const seat: Seat = which === "me" ? mySeat : mySeat === "a" ? "b" : "a";
     const base = which === "me" ? COLORS.me : COLORS.foe;
     const dark = which === "me" ? COLORS.meDark : COLORS.foeDark;
     const r = PLAYER.radius;
